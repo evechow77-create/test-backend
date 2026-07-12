@@ -329,7 +329,7 @@ fetch('/api/save', {
                 <div class="center">
                     <div class="type-box">E${eIdx===0?'-':(eIdx===1?'=':'+')} V${vIdx===0?'-':(vIdx===1?'=':'+')} S${sIdx===0?'-':(sIdx===1?'=':'+')} D${dIdx===0?'-':(dIdx===1?'=':'+')}</div>
                 </div>
-                ${drinkImage ? `<img class="drink-image" src="${drinkImage}" alt="${drinkName}" loading="lazy" crossorigin="anonymous">` : `<div class="drink-emoji" style="display:flex;align-items:center;justify-content:center;font-size:72px;width:160px;height:160px;margin:0 auto 16px;background:#f0e8e0;border-radius:50%;box-shadow:0 4px 12px rgba(0,0,0,0.08);">🍸</div>`}
+                ${drinkImage ? `<img class="drink-image" src="${drinkImage}" alt="${drinkName}" loading="lazy">` : `<div class="drink-emoji" style="display:flex;align-items:center;justify-content:center;font-size:72px;width:160px;height:160px;margin:0 auto 16px;background:#f0e8e0;border-radius:50%;box-shadow:0 4px 12px rgba(0,0,0,0.08);">🍸</div>`}
                 <div class="drink-name">${drinkName}</div>
                 <div class="drink-poem">${drink.poem}</div>
                 
