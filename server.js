@@ -11,7 +11,6 @@ const PORT = process.env.PORT || 3000;
 app.use(cors());
 app.use(express.json({ limit: '10mb' }));
 
-// 静态文件（前端页面）
 app.use(express.static(path.join(__dirname, 'public')));
 
 // ==================== 限流 ====================
@@ -168,7 +167,7 @@ app.get('/api/stats', async (req, res) => {
     }
 });
 
-// ==================== 列表 API（返回大写字段） ====================
+// ==================== 列表 API（含每题分数） ====================
 app.get('/api/results', async (req, res) => {
     const key = req.query.key;
     if (key !== 'admin123') {
@@ -179,16 +178,19 @@ app.get('/api/results', async (req, res) => {
     try {
         const result = await pool.query(`
             SELECT 
-                id, 
-                timestamp, 
-                drink_name, 
-                E, 
-                V, 
-                S, 
-                D, 
-                device
-            FROM test_results 
-            ORDER BY id DESC 
+                r.id, 
+                r.timestamp, 
+                r.drink_name, 
+                r.E, 
+                r.V, 
+                r.S, 
+                r.D, 
+                r.device,
+                array_agg(a.answer_value ORDER BY a.question_index) as answers
+            FROM test_results r
+            LEFT JOIN test_answers a ON r.id = a.result_id
+            GROUP BY r.id
+            ORDER BY r.id DESC 
             LIMIT $1
         `, [limit]);
         res.json(result.rows);
@@ -197,7 +199,42 @@ app.get('/api/results', async (req, res) => {
     }
 });
 
-// ==================== 管理面板（修复版） ====================
+// ==================== 获取单条记录详情 ====================
+app.get('/api/result/:id', async (req, res) => {
+    const key = req.query.key;
+    if (key !== 'admin123') {
+        return res.status(403).json({ error: 'Unauthorized' });
+    }
+
+    const id = parseInt(req.params.id);
+    try {
+        const result = await pool.query(`
+            SELECT id, timestamp, drink_name, E, V, S, D, device
+            FROM test_results 
+            WHERE id = $1
+        `, [id]);
+
+        if (result.rows.length === 0) {
+            return res.status(404).json({ error: '记录不存在' });
+        }
+
+        const answers = await pool.query(`
+            SELECT question_index, answer_value
+            FROM test_answers 
+            WHERE result_id = $1
+            ORDER BY question_index
+        `, [id]);
+
+        const row = result.rows[0];
+        row.answers = answers.rows.map(a => a.answer_value);
+
+        res.json(row);
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
+// ==================== 管理面板 ====================
 app.get('/admin', (req, res) => {
     res.send(`
         <!DOCTYPE html>
@@ -220,6 +257,8 @@ app.get('/admin', (req, res) => {
                 .btn:hover { background: #7f6243; }
                 .flex { display: flex; gap: 12px; flex-wrap: wrap; }
                 input[type="password"] { padding: 8px 12px; border: 1px solid #ddd; border-radius: 6px; }
+                .answer-cell { font-size: 11px; max-width: 250px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; cursor: pointer; }
+                .answer-cell:hover { white-space: normal; overflow: visible; background: #fff; position: relative; z-index: 10; box-shadow: 0 2px 8px rgba(0,0,0,0.15); padding: 4px 8px; border-radius: 4px; }
             </style>
         </head>
         <body>
@@ -260,23 +299,25 @@ app.get('/admin', (req, res) => {
                         html += '</div>';
 
                         html += '<h3>📋 最近测试记录</h3><div style="overflow-x:auto;"><table>';
-                        html += '<tr><th>ID</th><th>时间</th><th>饮品</th><th>E</th><th>V</th><th>S</th><th>D</th><th>设备</th></tr>';
+                        html += '<tr><th>ID</th><th>时间</th><th>饮品</th><th>E</th><th>V</th><th>S</th><th>D</th><th>每题分数</th><th>设备</th></tr>';
                         
                         if (results && results.length > 0) {
                             results.forEach(r => {
+                                const answersStr = r.answers ? r.answers.join(', ') : '无';
                                 html += '<tr>';
                                 html += '<td>' + r.id + '</td>';
                                 html += '<td>' + new Date(r.timestamp).toLocaleString() + '</td>';
                                 html += '<td><strong>' + r.drink_name + '</strong></td>';
-                                html += '<td>' + (r.e || r.E ? (r.e || r.E).toFixed(2) : '-') + '</td>';
-                                html += '<td>' + (r.v || r.V ? (r.v || r.V).toFixed(2) : '-') + '</td>';
-                                html += '<td>' + (r.s || r.S ? (r.s || r.S).toFixed(2) : '-') + '</td>';
-                                html += '<td>' + (r.d || r.D ? (r.d || r.D).toFixed(2) : '-') + '</td>';
+                                html += '<td>' + (r.E ? r.E.toFixed(2) : '-') + '</td>';
+                                html += '<td>' + (r.V ? r.V.toFixed(2) : '-') + '</td>';
+                                html += '<td>' + (r.S ? r.S.toFixed(2) : '-') + '</td>';
+                                html += '<td>' + (r.D ? r.D.toFixed(2) : '-') + '</td>';
+                                html += '<td class="answer-cell" title="' + answersStr + '">' + answersStr + '</td>';
                                 html += '<td>' + (r.device || '-') + '</td>';
                                 html += '</tr>';
                             });
                         } else {
-                            html += '<tr><td colspan="8" style="text-align:center;color:#999;">暂无数据</td></tr>';
+                            html += '<tr><td colspan="9" style="text-align:center;color:#999;">暂无数据</td></tr>';
                         }
                         html += '</table></div>';
                         
