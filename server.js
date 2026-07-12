@@ -69,6 +69,9 @@ console.log('✅ PostgreSQL 数据库连接已初始化');
 app.post('/api/save', async (req, res) => {
     const data = req.body;
     console.log('📥 接收到的数据:', data);
+    console.log('1️⃣ 数据接收完成，准备检查 answers');
+    console.log('2️⃣ answers 类型:', typeof data.answers, '是否为数组:', Array.isArray(data.answers));
+    console.log('3️⃣ answers 长度:', data.answers ? data.answers.length : 'undefined');
     const ipAddress = req.headers['x-forwarded-for'] || req.ip || req.connection.remoteAddress;
     const userAgent = req.headers['user-agent'];
 
