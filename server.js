@@ -180,7 +180,15 @@ app.get('/api/results', async (req, res) => {
     const limit = parseInt(req.query.limit) || 20;
     try {
         const result = await pool.query(`
-            SELECT id, timestamp, drink_name, E, V, S, D, device
+            SELECT 
+                id, 
+                timestamp, 
+                drink_name, 
+                E as e, 
+                V as v, 
+                S as s, 
+                D as d, 
+                device
             FROM test_results 
             ORDER BY id DESC 
             LIMIT $1
