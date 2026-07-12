@@ -85,7 +85,6 @@ app.post('/api/save', async (req, res) => {
     try {
         console.log('📥 开始处理数据:', data.drink_name);
         
-        // 插入主表，返回 id
         const result = await pool.query(`
             INSERT INTO test_results (
                 timestamp, session_id, drink_name,
@@ -114,7 +113,6 @@ app.post('/api/save', async (req, res) => {
         const resultId = result.rows[0].id;
         console.log('✅ 主表插入成功，ID:', resultId);
 
-        // 插入答案
         console.log('📝 开始插入答案，共', data.answers.length, '条');
         for (let i = 0; i < data.answers.length; i++) {
             await pool.query(`
@@ -170,7 +168,7 @@ app.get('/api/stats', async (req, res) => {
     }
 });
 
-// ==================== 列表 API ====================
+// ==================== 列表 API（返回大写字段） ====================
 app.get('/api/results', async (req, res) => {
     const key = req.query.key;
     if (key !== 'admin123') {
@@ -184,10 +182,10 @@ app.get('/api/results', async (req, res) => {
                 id, 
                 timestamp, 
                 drink_name, 
-                E as e, 
-                V as v, 
-                S as s, 
-                D as d, 
+                E, 
+                V, 
+                S, 
+                D, 
                 device
             FROM test_results 
             ORDER BY id DESC 
@@ -199,7 +197,7 @@ app.get('/api/results', async (req, res) => {
     }
 });
 
-// ==================== 管理面板 ====================
+// ==================== 管理面板（修复版） ====================
 app.get('/admin', (req, res) => {
     res.send(`
         <!DOCTYPE html>
@@ -248,6 +246,10 @@ app.get('/admin', (req, res) => {
                         const stats = await statsRes.json();
                         const resultsRes = await fetch('/api/results?key=' + pwd + '&limit=20');
                         const results = await resultsRes.json();
+                        
+                        console.log('📊 统计数据:', stats);
+                        console.log('📊 详细数据:', results);
+                        
                         let html = '<div class="stats-grid">';
                         html += '<div class="stat-item"><div class="stat-number">' + (stats.total_tests || 0) + '</div><div class="stat-label">总测试数</div></div>';
                         html += '<div class="stat-item"><div class="stat-number">' + (stats.most_common_drink || '-') + '</div><div class="stat-label">最热门饮品</div></div>';
@@ -256,18 +258,33 @@ app.get('/admin', (req, res) => {
                         html += '<div class="stat-item"><div class="stat-number">' + (stats.avg_S ? stats.avg_S.toFixed(2) : '-') + '</div><div class="stat-label">平均 S 值</div></div>';
                         html += '<div class="stat-item"><div class="stat-number">' + (stats.avg_D ? stats.avg_D.toFixed(2) : '-') + '</div><div class="stat-label">平均 D 值</div></div>';
                         html += '</div>';
+
                         html += '<h3>📋 最近测试记录</h3><div style="overflow-x:auto;"><table>';
                         html += '<tr><th>ID</th><th>时间</th><th>饮品</th><th>E</th><th>V</th><th>S</th><th>D</th><th>设备</th></tr>';
+                        
                         if (results && results.length > 0) {
                             results.forEach(r => {
-                                html += '<tr><td>' + r.id + '</td><td>' + new Date(r.timestamp).toLocaleString() + '</td><td>' + r.drink_name + '</td><td>' + (r.E ? r.E.toFixed(2) : '-') + '</td><td>' + (r.V ? r.V.toFixed(2) : '-') + '</td><td>' + (r.S ? r.S.toFixed(2) : '-') + '</td><td>' + (r.D ? r.D.toFixed(2) : '-') + '</td><td>' + (r.device || '-') + '</td></tr>';
+                                html += '<tr>';
+                                html += '<td>' + r.id + '</td>';
+                                html += '<td>' + new Date(r.timestamp).toLocaleString() + '</td>';
+                                html += '<td><strong>' + r.drink_name + '</strong></td>';
+                                html += '<td>' + (r.e || r.E ? (r.e || r.E).toFixed(2) : '-') + '</td>';
+                                html += '<td>' + (r.v || r.V ? (r.v || r.V).toFixed(2) : '-') + '</td>';
+                                html += '<td>' + (r.s || r.S ? (r.s || r.S).toFixed(2) : '-') + '</td>';
+                                html += '<td>' + (r.d || r.D ? (r.d || r.D).toFixed(2) : '-') + '</td>';
+                                html += '<td>' + (r.device || '-') + '</td>';
+                                html += '</tr>';
                             });
+                        } else {
+                            html += '<tr><td colspan="8" style="text-align:center;color:#999;">暂无数据</td></tr>';
                         }
                         html += '</table></div>';
+                        
                         html += '<div class="flex" style="margin-top:16px;"><button class="btn" onclick="loadData()">🔄 刷新</button></div>';
                         content.innerHTML = html;
                     } catch (e) {
                         content.innerHTML = '<p style="color:red;">加载失败: ' + e.message + '</p>';
+                        console.error('加载失败:', e);
                     }
                 }
                 loadData();
