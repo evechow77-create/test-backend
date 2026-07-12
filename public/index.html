@@ -8,13 +8,13 @@
     <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
     <meta property="og:title" content="浓淡风格测试 · 特调饮品版" />
     <meta property="og:description" content="16道题测出你的专属特调饮品，分享给你的朋友试试！" />
-    <meta property="og:image" content="https://wx4.sinaimg.cn/mw690/874c5cf3gy1if1ixpuj2xj224g140dov.jpg" />
+    <meta property="og:image" content="/images/00 浓淡封面" />
     <meta property="og:url" content="https://test-backend-9iya.onrender.com" />
     <meta property="og:type" content="website" />
     <!-- 微信兼容 -->
     <meta itemprop="name" content="浓淡风格测试 · 特调饮品版">
     <meta itemprop="description" content="16道题测出你的专属特调饮品！">
-    <meta itemprop="image" content="https://wx4.sinaimg.cn/mw690/874c5cf3gy1if1ixpuj2xj224g140dov.jpg">
+    <meta itemprop="image" content="/images/00 浓淡封面">
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; font-family: "PingFang SC", "Microsoft YaHei", -apple-system, sans-serif; }
         body { background: #f5f0eb; min-height: 100vh; display: flex; justify-content: center; align-items: center; padding: 20px; }
@@ -136,39 +136,39 @@
 
     // ==================== 饮品图片映射 ====================
     const drinkImages = {
-        "纯净水": "https://s3.bmp.ovh/2026/07/12/aXUgXsJv.jpg",
-        "电解质水": "https://s3.bmp.ovh/2026/07/12/TZolhhJ2.jpg",
-        "乳酸菌水": "https://s3.bmp.ovh/2026/07/12/IIe8Z0Eg.jpg",
-        "茉莉花茶": "https://s3.bmp.ovh/2026/07/12/M16bXp95.jpg",
-        "高山乌龙茶": "https://s3.bmp.ovh/2026/07/12/emgflPwk.jpg",
-        "五黑茶": "https://s3.bmp.ovh/2026/07/12/684KFvzl.jpg",
-        "玫瑰洛神饮": "https://s3.bmp.ovh/2026/07/12/e5tkz5l7.jpg",
-        "酸梅汤": "https://s3.bmp.ovh/2026/07/12/MFpeSwK9.jpg",
-        "黄芪茶": "https://s3.bmp.ovh/2026/07/12/ClFp8QpJ.jpg",
-        "姜枣茶": "https://s3.bmp.ovh/2026/07/12/YSA0a051.jpg",
-        "四神汤": "https://s3.bmp.ovh/2026/07/12/3q2sjsdv.jpg",
-        "五豆饮": "https://s3.bmp.ovh/2026/07/12/qFSbSXVg.jpg",
-        "纯牛奶": "https://s3.bmp.ovh/2026/07/12/zndD6vyZ.jpg",
-        "荔枝冰奶": "https://s3.bmp.ovh/2026/07/12/HA6KGC6A.jpg",
-        "肉桂奶茶": "https://s3.bmp.ovh/2026/07/12/qOSnXhhU.jpg",
-        "蜂蜜奶酒": "https://s3.bmp.ovh/2026/07/12/QFp6crWY.jpg",
-        "黄金奶": "https://s3.bmp.ovh/2026/07/12/qriEnbGh.jpg",
-        "柠檬汽水": "https://s3.bmp.ovh/2026/07/12/J7vnlUYl.jpg",
-        "橘子汽水": "https://s3.bmp.ovh/2026/07/12/Xnfmd1s3.jpg",
-        "白桃汽水": "https://s3.bmp.ovh/2026/07/12/pllaiAYL.jpg",
-        "柠檬姜茶": "https://s3.bmp.ovh/2026/07/12/1JW3wmG0.jpg",
-        "蜂蜜柚子茶": "https://s3.bmp.ovh/2026/07/12/JUaPRANF.jpg",
-        "牛油果奶昔": "https://s3.bmp.ovh/2026/07/12/3Jt1U3Iz.jpg",
-        "热带风情果汁": "https://s3.bmp.ovh/2026/07/12/NTq2DErE.jpg",
-        "杨枝甘露": "https://s3.bmp.ovh/2026/07/12/gfsUqxh2.jpg",
-        "抹茶拿铁": "https://s3.bmp.ovh/2026/07/12/bMqGueqG.jpg",
-        "蓝焰伏特加": "https://s3.bmp.ovh/2026/04/17/FEP2gRk4.jpg",
-        "生椰拿铁": "https://s3.bmp.ovh/2026/07/12/O4gOXIIO.jpg",
-        "爱尔兰咖啡": "https://s3.bmp.ovh/2026/07/12/a8IoGdZo.jpg",
-        "厚乳拿铁": "https://s3.bmp.ovh/2026/07/12/xp3RlvV5.jpg",
-        "B52轰炸机": "https://s3.bmp.ovh/2026/04/17/FKtfGfZS.jpg",
-        "白俄罗斯": "https://s3.bmp.ovh/2026/04/17/W6lQmGq8.jpg",
-        "浓缩马提尼": "https://s3.bmp.ovh/2026/07/12/VkxbsQee.jpg"
+        "纯净水": "/images/01 纯净水.jpg",
+        "电解质水": "/images/02 电解质水.jpg",
+        "乳酸菌水": "/images/03 乳酸菌水.jpg",
+        "茉莉花茶": "/images/04 茉莉花茶.jpg",
+        "高山乌龙茶": "/images/05 高山乌龙茶.jpg",
+        "五黑茶": "/images/06 五黑茶.jpg",
+        "玫瑰洛神饮": "/images/07 玫瑰洛神饮.jpg",
+        "酸梅汤": "/images/08 酸梅汤.jpg",
+        "黄芪茶": "/images/09 黄芪茶.jpg",
+        "姜枣茶": "/images/10 姜枣茶.jpg",
+        "四神汤": "/images/11 四神汤.jpg",
+        "五豆饮": "/images/12 五豆饮.jpg",
+        "纯牛奶": "/images/13 纯牛奶.jpg",
+        "荔枝冰奶": "/images/14 荔枝冰奶.jpg",
+        "肉桂奶茶": "/images/15 肉桂奶茶.jpg",
+        "蜂蜜奶酒": "/images/16 蜂蜜奶酒.jpg",
+        "黄金奶": "/images/17 姜黄饮.jpg",
+        "柠檬汽水": "/images/18 柠檬汽水.jpg",
+        "橘子汽水": "/images/19 橘子汽水.jpg",
+        "白桃汽水": "/images/20 白桃汽水.jpg",
+        "柠檬姜茶": "/images/21 柠檬姜茶.jpg",
+        "蜂蜜柚子茶": "/images/22 蜂蜜柚子茶.jpg",
+        "牛油果奶昔": "/images/23 牛油果奶昔.jpg",
+        "热带风情果汁": "/images/24 热带果汁.jpg",
+        "杨枝甘露": "/images/25 杨枝甘露.jpg",
+        "抹茶拿铁": "/images/26 抹茶拿铁.jpg",
+        "蓝焰伏特加": "/images/27 蓝焰伏特加.png",
+        "生椰拿铁": "/images/28 生椰拿铁.jpg",
+        "爱尔兰咖啡": "/images/29 爱尔兰咖啡.jpg",
+        "厚乳拿铁": "/images/30 厚乳拿铁.jpg",
+        "B52轰炸机": "/images/31 B52轰炸机.png",
+        "白俄罗斯": "/images/32 白俄罗斯.png",
+        "浓缩马提尼": "/images/33 浓缩马提尼.jpg"
     };
 
     // ==================== 饮品映射 ====================
