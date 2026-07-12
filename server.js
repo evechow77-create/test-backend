@@ -2,10 +2,32 @@ const express = require('express');
 const cors = require('cors');
 const rateLimit = require('express-rate-limit');
 const { Pool } = require('pg');
+const path = require('path');
 
-// 使用环境变量中的数据库连接
+const app = express();
+const PORT = process.env.PORT || 3000;
+
+// ==================== 中间件 ====================
+app.use(cors());
+app.use(express.json({ limit: '10mb' }));
+
+// 静态文件（前端页面）
+app.use(express.static(path.join(__dirname, 'public')));
+
+// ==================== 限流 ====================
+const limiter = rateLimit({
+    windowMs: 15 * 60 * 1000,
+    max: 100,
+    message: { error: '请求过于频繁，请稍后再试' }
+});
+app.use('/api/save', limiter);
+
+// ==================== PostgreSQL 数据库 ====================
 const pool = new Pool({
     connectionString: process.env.DATABASE_URL,
+    ssl: {
+        rejectUnauthorized: false
+    }
 });
 
 // 创建表
@@ -29,7 +51,7 @@ pool.query(`
         ip_address TEXT,
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
     )
-`);
+`).catch(err => console.error('创建 test_results 表失败:', err));
 
 pool.query(`
     CREATE TABLE IF NOT EXISTS test_answers (
@@ -38,78 +60,23 @@ pool.query(`
         question_index INTEGER,
         answer_value INTEGER
     )
-`);
+`).catch(err => console.error('创建 test_answers 表失败:', err));
 
-const path = require('path');
-const fs = require('fs');
+console.log('✅ PostgreSQL 数据库连接已初始化');
 
-const app = express();
-const PORT = process.env.PORT || 3000;
-
-// 中间件
-app.use(cors());
-app.use(express.json({ limit: '10mb' }));
-
-// 静态文件（前端页面）
-app.use(express.static(path.join(__dirname, 'public')));
-
-// 限流
-const limiter = rateLimit({
-    windowMs: 15 * 60 * 1000,
-    max: 100,
-    message: { error: '请求过于频繁，请稍后再试' }
-});
-app.use('/api/save', limiter);
-
-// 数据库
-const dataDir = path.join(__dirname, 'data');
-if (!fs.existsSync(dataDir)) {
-    fs.mkdirSync(dataDir);
-}
-const dbPath = path.join(dataDir, 'test.db');
-const db = new sqlite3.Database(dbPath);
-
-db.serialize(() => {
-    db.run(`
-        CREATE TABLE IF NOT EXISTS test_results (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            timestamp TEXT NOT NULL,
-            session_id TEXT,
-            drink_name TEXT NOT NULL,
-            E REAL,
-            V REAL,
-            S REAL,
-            D REAL,
-            e_idx INTEGER,
-            v_idx INTEGER,
-            s_idx INTEGER,
-            d_idx INTEGER,
-            device TEXT,
-            screen_size TEXT,
-            user_agent TEXT,
-            ip_address TEXT,
-            created_at DATETIME DEFAULT CURRENT_TIMESTAMP
-        )
-    `);
-
-    db.run(`
-        CREATE TABLE IF NOT EXISTS test_answers (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            result_id INTEGER,
-            question_index INTEGER,
-            answer_value INTEGER,
-            FOREIGN KEY (result_id) REFERENCES test_results(id) ON DELETE CASCADE
-        )
-    `);
-
-    console.log('✅ 数据库初始化完成');
-});
-
-// 保存数据
+// ==================== 保存数据 API ====================
 app.post('/api/save', async (req, res) => {
     const data = req.body;
-    // ... 验证逻辑不变 ...
-    
+    const ipAddress = req.headers['x-forwarded-for'] || req.ip || req.connection.remoteAddress;
+    const userAgent = req.headers['user-agent'];
+
+    if (!data.drink_name || !data.answers || !Array.isArray(data.answers)) {
+        return res.status(400).json({
+            success: false,
+            error: '缺少必要字段'
+        });
+    }
+
     try {
         // 插入主表，返回 id
         const result = await pool.query(`
@@ -133,12 +100,12 @@ app.post('/api/save', async (req, res) => {
             data.d_idx || 0,
             data.device || 'unknown',
             data.screen_size || 'unknown',
-            req.headers['user-agent'] || 'unknown',
-            req.headers['x-forwarded-for'] || req.ip || 'unknown'
+            userAgent || 'unknown',
+            ipAddress || 'unknown'
         ]);
-        
+
         const resultId = result.rows[0].id;
-        
+
         // 插入答案
         for (let i = 0; i < data.answers.length; i++) {
             await pool.query(`
@@ -146,15 +113,73 @@ app.post('/api/save', async (req, res) => {
                 VALUES ($1, $2, $3)
             `, [resultId, i, data.answers[i]]);
         }
-        
-        res.json({ success: true, message: '数据保存成功', id: resultId });
+
+        res.json({
+            success: true,
+            message: '数据保存成功',
+            id: resultId
+        });
     } catch (err) {
         console.error('保存失败:', err);
-        res.status(500).json({ success: false, error: err.message });
+        res.status(500).json({
+            success: false,
+            error: err.message
+        });
     }
 });
 
-// 管理面板
+// ==================== 统计 API ====================
+app.get('/api/stats', async (req, res) => {
+    const key = req.query.key;
+    if (key !== 'admin123') {
+        return res.status(403).json({ error: 'Unauthorized' });
+    }
+
+    try {
+        const result = await pool.query(`
+            SELECT 
+                COUNT(*) as total_tests,
+                AVG(E) as avg_E,
+                AVG(V) as avg_V,
+                AVG(S) as avg_S,
+                AVG(D) as avg_D,
+                (
+                    SELECT drink_name 
+                    FROM test_results 
+                    GROUP BY drink_name 
+                    ORDER BY COUNT(*) DESC 
+                    LIMIT 1
+                ) as most_common_drink
+            FROM test_results
+        `);
+        res.json(result.rows[0] || {});
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
+// ==================== 列表 API ====================
+app.get('/api/results', async (req, res) => {
+    const key = req.query.key;
+    if (key !== 'admin123') {
+        return res.status(403).json({ error: 'Unauthorized' });
+    }
+
+    const limit = parseInt(req.query.limit) || 20;
+    try {
+        const result = await pool.query(`
+            SELECT id, timestamp, drink_name, E, V, S, D, device
+            FROM test_results 
+            ORDER BY id DESC 
+            LIMIT $1
+        `, [limit]);
+        res.json(result.rows);
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
+// ==================== 管理面板 ====================
 app.get('/admin', (req, res) => {
     res.send(`
         <!DOCTYPE html>
@@ -232,41 +257,7 @@ app.get('/admin', (req, res) => {
     `);
 });
 
-// 统计接口
-app.get('/api/stats', (req, res) => {
-    const key = req.query.key;
-    if (key !== 'admin123') return res.status(403).json({ error: 'Unauthorized' });
-
-    db.get(`
-        SELECT 
-            COUNT(*) as total_tests,
-            AVG(E) as avg_E,
-            AVG(V) as avg_V,
-            AVG(S) as avg_S,
-            AVG(D) as avg_D,
-            (SELECT drink_name FROM test_results GROUP BY drink_name ORDER BY COUNT(*) DESC LIMIT 1) as most_common_drink
-        FROM test_results
-    `, (err, row) => {
-        if (err) return res.status(500).json({ error: err.message });
-        res.json(row);
-    });
-});
-
-// 列表接口
-app.get('/api/results', (req, res) => {
-    const key = req.query.key;
-    if (key !== 'admin123') return res.status(403).json({ error: 'Unauthorized' });
-
-    const limit = parseInt(req.query.limit) || 20;
-    db.all(`
-        SELECT id, timestamp, drink_name, E, V, S, D, device
-        FROM test_results ORDER BY id DESC LIMIT ?
-    `, [limit], (err, rows) => {
-        if (err) return res.status(500).json({ error: err.message });
-        res.json(rows);
-    });
-});
-
+// ==================== 启动服务器 ====================
 app.listen(PORT, () => {
     console.log('🚀 服务器已启动: http://localhost:' + PORT);
     console.log('📊 管理面板: http://localhost:' + PORT + '/admin');
