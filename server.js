@@ -80,6 +80,8 @@ app.post('/api/save', async (req, res) => {
     }
 
     try {
+        console.log('📥 开始处理数据:', data.drink_name);
+        
         // 插入主表，返回 id
         const result = await pool.query(`
             INSERT INTO test_results (
@@ -107,14 +109,17 @@ app.post('/api/save', async (req, res) => {
         ]);
 
         const resultId = result.rows[0].id;
+        console.log('✅ 主表插入成功，ID:', resultId);
 
         // 插入答案
+        console.log('📝 开始插入答案，共', data.answers.length, '条');
         for (let i = 0; i < data.answers.length; i++) {
             await pool.query(`
                 INSERT INTO test_answers (result_id, question_index, answer_value)
                 VALUES ($1, $2, $3)
             `, [resultId, i, data.answers[i]]);
         }
+        console.log('✅ 所有答案插入完成');
 
         res.json({
             success: true,
@@ -122,10 +127,12 @@ app.post('/api/save', async (req, res) => {
             id: resultId
         });
     } catch (err) {
-        console.error('保存失败:', err);
+        console.error('❌ 保存失败 - 完整错误:', err);
+        console.error('❌ 错误堆栈:', err.stack);
         res.status(500).json({
             success: false,
-            error: err.message
+            error: err.message,
+            stack: err.stack
         });
     }
 });
