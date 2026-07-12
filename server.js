@@ -131,7 +131,7 @@ app.get('/api/stats', async (req, res) => {
     try {
         const result = await pool.query(`
             SELECT 
-                COUNT(*) as total_tests,
+                COUNT(*)::int as total_tests,
                 ROUND(AVG(E)::numeric, 2) as "avg_E",
                 ROUND(AVG(V)::numeric, 2) as "avg_V",
                 ROUND(AVG(S)::numeric, 2) as "avg_S",
@@ -151,7 +151,7 @@ app.get('/api/stats', async (req, res) => {
     }
 });
 
-// ==================== 列表 API（含每题分数） ====================
+// ==================== 列表 API（强制返回大写字段） ====================
 app.get('/api/results', async (req, res) => {
     const key = req.query.key;
     if (key !== 'admin123') {
@@ -165,10 +165,10 @@ app.get('/api/results', async (req, res) => {
                 r.id, 
                 r.timestamp, 
                 r.drink_name, 
-                r.E, 
-                r.V, 
-                r.S, 
-                r.D, 
+                r.E as "E",
+                r.V as "V",
+                r.S as "S",
+                r.D as "D",
                 r.device,
                 array_agg(a.answer_value ORDER BY a.question_index) as answers
             FROM test_results r
@@ -236,6 +236,7 @@ app.get('/admin', (req, res) => {
                         const results = await resultsRes.json();
                         
                         console.log('📊 统计数据:', stats);
+                        console.log('📊 详细数据:', results);
                         
                         let html = '<div class="stats-grid">';
                         html += '<div class="stat-item"><div class="stat-number">' + (stats.total_tests || 0) + '</div><div class="stat-label">总测试数</div></div>';
@@ -256,10 +257,10 @@ app.get('/admin', (req, res) => {
                                 html += '<td>' + r.id + '</td>';
                                 html += '<td>' + new Date(r.timestamp).toLocaleString() + '</td>';
                                 html += '<td><strong>' + r.drink_name + '</strong></td>';
-                                html += '<td>' + (r.E || '-') + '</td>';
-                                html += '<td>' + (r.V || '-') + '</td>';
-                                html += '<td>' + (r.S || '-') + '</td>';
-                                html += '<td>' + (r.D || '-') + '</td>';
+                                html += '<td>' + (r.E ?? '-') + '</td>';
+                                html += '<td>' + (r.V ?? '-') + '</td>';
+                                html += '<td>' + (r.S ?? '-') + '</td>';
+                                html += '<td>' + (r.D ?? '-') + '</td>';
                                 html += '<td class="answer-cell" title="' + answersStr + '">' + answersStr + '</td>';
                                 html += '<td>' + (r.device || '-') + '</td>';
                                 html += '</tr>';
