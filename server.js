@@ -1,7 +1,45 @@
 const express = require('express');
 const cors = require('cors');
 const rateLimit = require('express-rate-limit');
-const sqlite3 = require('sqlite3').verbose();
+const { Pool } = require('pg');
+
+// 使用环境变量中的数据库连接
+const pool = new Pool({
+    connectionString: process.env.DATABASE_URL,
+});
+
+// 创建表
+pool.query(`
+    CREATE TABLE IF NOT EXISTS test_results (
+        id SERIAL PRIMARY KEY,
+        timestamp TEXT NOT NULL,
+        session_id TEXT,
+        drink_name TEXT NOT NULL,
+        E REAL,
+        V REAL,
+        S REAL,
+        D REAL,
+        e_idx INTEGER,
+        v_idx INTEGER,
+        s_idx INTEGER,
+        d_idx INTEGER,
+        device TEXT,
+        screen_size TEXT,
+        user_agent TEXT,
+        ip_address TEXT,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    )
+`);
+
+pool.query(`
+    CREATE TABLE IF NOT EXISTS test_answers (
+        id SERIAL PRIMARY KEY,
+        result_id INTEGER REFERENCES test_results(id) ON DELETE CASCADE,
+        question_index INTEGER,
+        answer_value INTEGER
+    )
+`);
+
 const path = require('path');
 const fs = require('fs');
 
@@ -68,58 +106,52 @@ db.serialize(() => {
 });
 
 // 保存数据
-app.post('/api/save', (req, res) => {
+app.post('/api/save', async (req, res) => {
     const data = req.body;
-    const ipAddress = req.headers['x-forwarded-for'] || req.ip || req.connection.remoteAddress;
-    const userAgent = req.headers['user-agent'];
-
-    if (!data.drink_name || !data.answers || !Array.isArray(data.answers)) {
-        return res.status(400).json({ 
-            success: false, 
-            error: '缺少必要字段' 
-        });
-    }
-
-    db.run(`
-        INSERT INTO test_results (
-            timestamp, session_id, drink_name,
-            E, V, S, D, e_idx, v_idx, s_idx, d_idx,
-            device, screen_size, user_agent, ip_address
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-    `, [
-        data.timestamp || new Date().toISOString(),
-        data.session_id || null,
-        data.drink_name,
-        data.E || 0,
-        data.V || 0,
-        data.S || 0,
-        data.D || 0,
-        data.e_idx || 0,
-        data.v_idx || 0,
-        data.s_idx || 0,
-        data.d_idx || 0,
-        data.device || 'unknown',
-        data.screen_size || 'unknown',
-        userAgent || 'unknown',
-        ipAddress || 'unknown'
-    ], function(err) {
-        if (err) {
-            console.error('保存失败:', err);
-            return res.status(500).json({ success: false, error: err.message });
+    // ... 验证逻辑不变 ...
+    
+    try {
+        // 插入主表，返回 id
+        const result = await pool.query(`
+            INSERT INTO test_results (
+                timestamp, session_id, drink_name,
+                E, V, S, D, e_idx, v_idx, s_idx, d_idx,
+                device, screen_size, user_agent, ip_address
+            ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15)
+            RETURNING id
+        `, [
+            data.timestamp || new Date().toISOString(),
+            data.session_id || null,
+            data.drink_name,
+            data.E || 0,
+            data.V || 0,
+            data.S || 0,
+            data.D || 0,
+            data.e_idx || 0,
+            data.v_idx || 0,
+            data.s_idx || 0,
+            data.d_idx || 0,
+            data.device || 'unknown',
+            data.screen_size || 'unknown',
+            req.headers['user-agent'] || 'unknown',
+            req.headers['x-forwarded-for'] || req.ip || 'unknown'
+        ]);
+        
+        const resultId = result.rows[0].id;
+        
+        // 插入答案
+        for (let i = 0; i < data.answers.length; i++) {
+            await pool.query(`
+                INSERT INTO test_answers (result_id, question_index, answer_value)
+                VALUES ($1, $2, $3)
+            `, [resultId, i, data.answers[i]]);
         }
-        const resultId = this.lastID;
-
-        const stmt = db.prepare(`
-            INSERT INTO test_answers (result_id, question_index, answer_value) 
-            VALUES (?, ?, ?)
-        `);
-        data.answers.forEach((val, idx) => {
-            stmt.run(resultId, idx, val);
-        });
-        stmt.finalize();
-
+        
         res.json({ success: true, message: '数据保存成功', id: resultId });
-    });
+    } catch (err) {
+        console.error('保存失败:', err);
+        res.status(500).json({ success: false, error: err.message });
+    }
 });
 
 // 管理面板
