@@ -7,13 +7,10 @@ const path = require('path');
 const app = express();
 const PORT = process.env.PORT || 3000;
 
-// ==================== 中间件 ====================
 app.use(cors());
 app.use(express.json({ limit: '10mb' }));
-
 app.use(express.static(path.join(__dirname, 'public')));
 
-// ==================== 限流 ====================
 const limiter = rateLimit({
     windowMs: 15 * 60 * 1000,
     max: 100,
@@ -21,7 +18,6 @@ const limiter = rateLimit({
 });
 app.use('/api/save', limiter);
 
-// ==================== PostgreSQL 数据库 ====================
 const pool = new Pool({
     connectionString: process.env.DATABASE_URL,
     ssl: {
@@ -30,7 +26,6 @@ const pool = new Pool({
     }
 });
 
-// 创建表
 pool.query(`
     CREATE TABLE IF NOT EXISTS test_results (
         id SERIAL PRIMARY KEY,
@@ -64,13 +59,9 @@ pool.query(`
 
 console.log('✅ PostgreSQL 数据库连接已初始化');
 
-// ==================== 保存数据 API ====================
 app.post('/api/save', async (req, res) => {
     const data = req.body;
     console.log('📥 接收到的数据:', data);
-    console.log('1️⃣ 数据接收完成，准备检查 answers');
-    console.log('2️⃣ answers 类型:', typeof data.answers, '是否为数组:', Array.isArray(data.answers));
-    console.log('3️⃣ answers 长度:', data.answers ? data.answers.length : 'undefined');
     const ipAddress = req.headers['x-forwarded-for'] || req.ip || req.connection.remoteAddress;
     const userAgent = req.headers['user-agent'];
 
@@ -82,8 +73,6 @@ app.post('/api/save', async (req, res) => {
     }
 
     try {
-        console.log('📥 开始处理数据:', data.drink_name);
-        
         const result = await pool.query(`
             INSERT INTO test_results (
                 timestamp, session_id, drink_name,
@@ -110,16 +99,13 @@ app.post('/api/save', async (req, res) => {
         ]);
 
         const resultId = result.rows[0].id;
-        console.log('✅ 主表插入成功，ID:', resultId);
 
-        console.log('📝 开始插入答案，共', data.answers.length, '条');
         for (let i = 0; i < data.answers.length; i++) {
             await pool.query(`
                 INSERT INTO test_answers (result_id, question_index, answer_value)
                 VALUES ($1, $2, $3)
             `, [resultId, i, data.answers[i]]);
         }
-        console.log('✅ 所有答案插入完成');
 
         res.json({
             success: true,
@@ -127,12 +113,10 @@ app.post('/api/save', async (req, res) => {
             id: resultId
         });
     } catch (err) {
-        console.error('❌ 保存失败 - 完整错误:', err);
-        console.error('❌ 错误堆栈:', err.stack);
+        console.error('❌ 保存失败:', err);
         res.status(500).json({
             success: false,
-            error: err.message,
-            stack: err.stack
+            error: err.message
         });
     }
 });
@@ -148,10 +132,10 @@ app.get('/api/stats', async (req, res) => {
         const result = await pool.query(`
             SELECT 
                 COUNT(*) as total_tests,
-                AVG(E) as avg_E,
-                AVG(V) as avg_V,
-                AVG(S) as avg_S,
-                AVG(D) as avg_D,
+                ROUND(AVG(E)::numeric, 2) as avg_E,
+                ROUND(AVG(V)::numeric, 2) as avg_V,
+                ROUND(AVG(S)::numeric, 2) as avg_S,
+                ROUND(AVG(D)::numeric, 2) as avg_D,
                 (
                     SELECT drink_name 
                     FROM test_results 
@@ -194,41 +178,6 @@ app.get('/api/results', async (req, res) => {
             LIMIT $1
         `, [limit]);
         res.json(result.rows);
-    } catch (err) {
-        res.status(500).json({ error: err.message });
-    }
-});
-
-// ==================== 获取单条记录详情 ====================
-app.get('/api/result/:id', async (req, res) => {
-    const key = req.query.key;
-    if (key !== 'admin123') {
-        return res.status(403).json({ error: 'Unauthorized' });
-    }
-
-    const id = parseInt(req.params.id);
-    try {
-        const result = await pool.query(`
-            SELECT id, timestamp, drink_name, E, V, S, D, device
-            FROM test_results 
-            WHERE id = $1
-        `, [id]);
-
-        if (result.rows.length === 0) {
-            return res.status(404).json({ error: '记录不存在' });
-        }
-
-        const answers = await pool.query(`
-            SELECT question_index, answer_value
-            FROM test_answers 
-            WHERE result_id = $1
-            ORDER BY question_index
-        `, [id]);
-
-        const row = result.rows[0];
-        row.answers = answers.rows.map(a => a.answer_value);
-
-        res.json(row);
     } catch (err) {
         res.status(500).json({ error: err.message });
     }
@@ -287,15 +236,14 @@ app.get('/admin', (req, res) => {
                         const results = await resultsRes.json();
                         
                         console.log('📊 统计数据:', stats);
-                        console.log('📊 详细数据:', results);
                         
                         let html = '<div class="stats-grid">';
                         html += '<div class="stat-item"><div class="stat-number">' + (stats.total_tests || 0) + '</div><div class="stat-label">总测试数</div></div>';
                         html += '<div class="stat-item"><div class="stat-number">' + (stats.most_common_drink || '-') + '</div><div class="stat-label">最热门饮品</div></div>';
-                        html += '<div class="stat-item"><div class="stat-number">' + (stats.avg_E ? stats.avg_E.toFixed(2) : '-') + '</div><div class="stat-label">平均 E 值</div></div>';
-                        html += '<div class="stat-item"><div class="stat-number">' + (stats.avg_V ? stats.avg_V.toFixed(2) : '-') + '</div><div class="stat-label">平均 V 值</div></div>';
-                        html += '<div class="stat-item"><div class="stat-number">' + (stats.avg_S ? stats.avg_S.toFixed(2) : '-') + '</div><div class="stat-label">平均 S 值</div></div>';
-                        html += '<div class="stat-item"><div class="stat-number">' + (stats.avg_D ? stats.avg_D.toFixed(2) : '-') + '</div><div class="stat-label">平均 D 值</div></div>';
+                        html += '<div class="stat-item"><div class="stat-number">' + (stats.avg_E || '-') + '</div><div class="stat-label">平均 E 值</div></div>';
+                        html += '<div class="stat-item"><div class="stat-number">' + (stats.avg_V || '-') + '</div><div class="stat-label">平均 V 值</div></div>';
+                        html += '<div class="stat-item"><div class="stat-number">' + (stats.avg_S || '-') + '</div><div class="stat-label">平均 S 值</div></div>';
+                        html += '<div class="stat-item"><div class="stat-number">' + (stats.avg_D || '-') + '</div><div class="stat-label">平均 D 值</div></div>';
                         html += '</div>';
 
                         html += '<h3>📋 最近测试记录</h3><div style="overflow-x:auto;"><table>';
@@ -308,10 +256,10 @@ app.get('/admin', (req, res) => {
                                 html += '<td>' + r.id + '</td>';
                                 html += '<td>' + new Date(r.timestamp).toLocaleString() + '</td>';
                                 html += '<td><strong>' + r.drink_name + '</strong></td>';
-                                html += '<td>' + (r.E ? r.E.toFixed(2) : '-') + '</td>';
-                                html += '<td>' + (r.V ? r.V.toFixed(2) : '-') + '</td>';
-                                html += '<td>' + (r.S ? r.S.toFixed(2) : '-') + '</td>';
-                                html += '<td>' + (r.D ? r.D.toFixed(2) : '-') + '</td>';
+                                html += '<td>' + (r.E || '-') + '</td>';
+                                html += '<td>' + (r.V || '-') + '</td>';
+                                html += '<td>' + (r.S || '-') + '</td>';
+                                html += '<td>' + (r.D || '-') + '</td>';
                                 html += '<td class="answer-cell" title="' + answersStr + '">' + answersStr + '</td>';
                                 html += '<td>' + (r.device || '-') + '</td>';
                                 html += '</tr>';
@@ -335,7 +283,6 @@ app.get('/admin', (req, res) => {
     `);
 });
 
-// ==================== 启动服务器 ====================
 app.listen(PORT, () => {
     console.log('🚀 服务器已启动: http://localhost:' + PORT);
     console.log('📊 管理面板: http://localhost:' + PORT + '/admin');
