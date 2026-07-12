@@ -199,10 +199,10 @@ app.get('/api/export', async (req, res) => {
                 r.id, 
                 r.timestamp, 
                 r.drink_name, 
-                r.E, 
-                r.V, 
-                r.S, 
-                r.D,
+                r.E as "E",
+                r.V as "V",
+                r.S as "S",
+                r.D as "D",
                 r.device,
                 array_agg(a.answer_value ORDER BY a.question_index) as answers
             FROM test_results r
