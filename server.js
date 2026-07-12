@@ -12,6 +12,9 @@ const PORT = process.env.PORT || 3000;
 app.use(cors());
 app.use(express.json({ limit: '10mb' }));
 
+// 静态文件（前端页面）
+app.use(express.static(path.join(__dirname, 'public')));
+
 // 限流
 const limiter = rateLimit({
     windowMs: 15 * 60 * 1000,
