@@ -5,6 +5,15 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=yes">
     <title>浓淡风格测试 · 特调饮品版</title>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <meta property="og:title" content="浓淡风格测试 · 特调饮品版" />
+    <meta property="og:description" content="16道题测出你的专属特调饮品，分享给你的朋友试试！" />
+    <meta property="og:image" content="https://wx4.sinaimg.cn/mw690/874c5cf3gy1if1ixpuj2xj224g140dov.jpg" />
+    <meta property="og:url" content="https://test-backend-9iya.onrender.com" />
+    <meta property="og:type" content="website" />
+    <!-- 微信兼容 -->
+    <meta itemprop="name" content="浓淡风格测试 · 特调饮品版">
+    <meta itemprop="description" content="16道题测出你的专属特调饮品！">
+    <meta itemprop="image" content="https://wx4.sinaimg.cn/mw690/874c5cf3gy1if1ixpuj2xj224g140dov.jpg">
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; font-family: "PingFang SC", "Microsoft YaHei", -apple-system, sans-serif; }
         body { background: #f5f0eb; min-height: 100vh; display: flex; justify-content: center; align-items: center; padding: 20px; }
@@ -222,7 +231,27 @@
     const appDiv = document.getElementById("app");
 
     function renderStart() {
-        appDiv.innerHTML = `<div class="card"><div class="header"><h1>🍹 浓淡风格测试</h1><div class="badge">特调饮品版 · 33种专属风味</div></div><div class="start-desc"><p>📋 共16题，根据第一反应选择（1=极淡，5=极浓）。</p><p>🎯 完成后生成你的「四维浓淡类型」和对应的特调饮品。</p><p>💡 浓淡无好坏，只是你与世界互动的方式。</p></div><div class="sub">创意总监：小象、啁啾 &nbsp;|&nbsp; 设计总监：啁啾<br>设计&编程助手：Deepseek &nbsp;|&nbsp; 图片设计：元宝<br>特别鸣谢：scintillate </div><div class="center"><button class="primary" id="startBtn">开始测试 →</button></div></div>`;
+        appDiv.innerHTML = `
+            <div class="card">
+                <div class="header">
+                    <h1>🍹 浓淡风格测试</h1>
+                    <div class="badge">特调饮品版 · 33种专属风味</div>
+                </div>
+                <div class="start-desc">
+                    <p>📋 共16题，根据第一反应选择（1=极淡，5=极浓）。</p>
+                    <p>🎯 完成后生成你的「四维浓淡类型」和对应的特调饮品。</p>
+                    <p>💡 浓淡无好坏，只是你与世界互动的方式。</p>
+                </div>
+                <div class="sub">创意总监：小象、啁啾 &nbsp;|&nbsp; 设计总监：啁啾<br>设计&编程助手：Deepseek &nbsp;|&nbsp; 图片设计：元宝<br>特别鸣谢：scintillate</div>
+                
+                <div class="center" style="margin-top:20px; display:flex; gap:12px; justify-content:center; flex-wrap:wrap;">
+                    <button class="primary" id="startBtn">开始测试 →</button>
+                    <button onclick="shareTest()" style="background:#9b7b5c; color:white; border:none; padding:14px 24px; border-radius:60px; font-size:16px; font-weight:600; cursor:pointer; box-shadow:0 4px 8px rgba(0,0,0,0.05);">
+                        📤 分享测试
+                    </button>
+                </div>
+            </div>
+        `;
         document.getElementById("startBtn").onclick = () => renderQuestion(0);
     }
 
@@ -327,7 +356,16 @@ fetch('/api/save', {
                 </div>
                 
                 <div class="detail-grid" id="detailGrid"></div>
-                
+
+                <div class="center" style="margin: 12px 0 8px; display: flex; gap: 12px; justify-content: center; flex-wrap: wrap;">
+                    <button onclick="shareTest()" style="background:#9b7b5c; color:white; border:none; padding:12px 28px; border-radius:60px; font-size:15px; cursor:pointer; box-shadow:0 4px 8px rgba(0,0,0,0.05);">
+                        📤 分享测试
+                    </button>
+                    <button onclick="shareResult('${drinkName}', '${drink.poem}')" style="background:#e8e0d8; color:#5e4b3a; border:none; padding:12px 28px; border-radius:60px; font-size:15px; cursor:pointer;">
+                        🏆 分享结果
+                    </button>
+                </div>
+
                 <div class="center restart-btn-wrap">
                     <button class="secondary" id="restartBtn">重新测试 ↻</button>
                 </div>
@@ -383,6 +421,61 @@ fetch('/api/save', {
     }
 
     renderStart();
+
+    // ==================== 分享功能 ====================
+    function shareTest() {
+        const url = window.location.href;
+        const text = '🍹 来测测你的专属特调饮品是什么！16道题，找到你的浓淡风格～';
+        
+        if (navigator.share) {
+            // 支持 Web Share API（手机浏览器）
+            navigator.share({
+                title: '浓淡风格测试',
+                text: text,
+                url: url
+            }).catch(() => {});
+        } else {
+            // 不支持则复制链接
+            navigator.clipboard.writeText(url + '\n' + text).then(() => {
+                alert('✅ 链接已复制！快去分享给朋友吧～');
+            }).catch(() => {
+                // 降级方案
+                const input = document.createElement('input');
+                input.value = url;
+                document.body.appendChild(input);
+                input.select();
+                document.execCommand('copy');
+                document.body.removeChild(input);
+                alert('✅ 链接已复制！');
+            });
+        }
+    }
+
+    function shareResult(drinkName, poem) {
+        const url = window.location.href;
+        const text = `🍹 我测出了「${drinkName}」！\n「${poem}」\n\n你也来测测看吧：\n${url}`;
+        
+        if (navigator.share) {
+            navigator.share({
+                title: '我的浓淡风格测试结果',
+                text: text,
+                url: url
+            }).catch(() => {});
+        } else {
+            navigator.clipboard.writeText(text).then(() => {
+                alert('✅ 结果已复制！快去分享吧～');
+            }).catch(() => {
+                const input = document.createElement('input');
+                input.value = text;
+                document.body.appendChild(input);
+                input.select();
+                document.execCommand('copy');
+                document.body.removeChild(input);
+                alert('✅ 结果已复制！');
+            });
+        }
+    }
+
 </script>
 </body>
 </html>
