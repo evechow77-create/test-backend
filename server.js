@@ -68,6 +68,7 @@ console.log('✅ PostgreSQL 数据库连接已初始化');
 // ==================== 保存数据 API ====================
 app.post('/api/save', async (req, res) => {
     const data = req.body;
+    console.log('📥 接收到的数据:', data);
     const ipAddress = req.headers['x-forwarded-for'] || req.ip || req.connection.remoteAddress;
     const userAgent = req.headers['user-agent'];
 
