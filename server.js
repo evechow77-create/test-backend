@@ -26,7 +26,8 @@ app.use('/api/save', limiter);
 const pool = new Pool({
     connectionString: process.env.DATABASE_URL,
     ssl: {
-        rejectUnauthorized: false
+        rejectUnauthorized: false,
+        require: true
     }
 });
 
