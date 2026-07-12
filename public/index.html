@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=yes">
     <title>浓淡风格测试 · 特调饮品版</title>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
     <meta property="og:title" content="浓淡风格测试 · 特调饮品版" />
     <meta property="og:description" content="16道题测出你的专属特调饮品，分享给你的朋友试试！" />
     <meta property="og:image" content="https://wx4.sinaimg.cn/mw690/874c5cf3gy1if1ixpuj2xj224g140dov.jpg" />
@@ -361,8 +362,8 @@ fetch('/api/save', {
                     <button onclick="shareTest()" style="background:#9b7b5c; color:white; border:none; padding:12px 28px; border-radius:60px; font-size:15px; cursor:pointer; box-shadow:0 4px 8px rgba(0,0,0,0.05);">
                         📤 分享测试
                     </button>
-                    <button onclick="shareResult('${drinkName}', '${drink.poem}')" style="background:#e8e0d8; color:#5e4b3a; border:none; padding:12px 28px; border-radius:60px; font-size:15px; cursor:pointer;">
-                        🏆 分享结果
+                    <button onclick="generateImage()" style="background:#6c5b4a; color:white; border:none; padding:12px 28px; border-radius:60px; font-size:15px; cursor:pointer;">
+                        🖼️ 生成结果图
                     </button>
                 </div>
 
@@ -423,59 +424,77 @@ fetch('/api/save', {
     renderStart();
 
     // ==================== 分享功能 ====================
+// ==================== 分享功能 ====================
     function shareTest() {
         const url = window.location.href;
-        const text = '🍹 来测测你的专属特调饮品是什么！16道题，找到你的浓淡风格～';
+        const text = '🍹 来测测你的专属特调饮品是什么！16道题，找到你的浓淡风格～\n\n' + url;
         
-        if (navigator.share) {
-            // 支持 Web Share API（手机浏览器）
-            navigator.share({
-                title: '浓淡风格测试',
-                text: text,
-                url: url
-            }).catch(() => {});
-        } else {
-            // 不支持则复制链接
-            navigator.clipboard.writeText(url + '\n' + text).then(() => {
-                alert('✅ 链接已复制！快去分享给朋友吧～');
-            }).catch(() => {
-                // 降级方案
-                const input = document.createElement('input');
-                input.value = url;
-                document.body.appendChild(input);
-                input.select();
-                document.execCommand('copy');
-                document.body.removeChild(input);
-                alert('✅ 链接已复制！');
-            });
-        }
+        const textarea = document.createElement('textarea');
+        textarea.value = text;
+        textarea.style.position = 'fixed';
+        textarea.style.top = '-9999px';
+        document.body.appendChild(textarea);
+        textarea.select();
+        document.execCommand('copy');
+        document.body.removeChild(textarea);
+        
+        alert('✅ 已复制链接！请打开微信粘贴给朋友～');
     }
 
-    function shareResult(drinkName, poem) {
-        const url = window.location.href;
-        const text = `🍹 我测出了「${drinkName}」！\n「${poem}」\n\n你也来测测看吧：\n${url}`;
-        
-        if (navigator.share) {
-            navigator.share({
-                title: '我的浓淡风格测试结果',
-                text: text,
-                url: url
-            }).catch(() => {});
-        } else {
-            navigator.clipboard.writeText(text).then(() => {
-                alert('✅ 结果已复制！快去分享吧～');
-            }).catch(() => {
-                const input = document.createElement('input');
-                input.value = text;
-                document.body.appendChild(input);
-                input.select();
-                document.execCommand('copy');
-                document.body.removeChild(input);
-                alert('✅ 结果已复制！');
-            });
+    function generateImage() {
+        const resultCard = document.querySelector('.result-card');
+        if (!resultCard) {
+            alert('请先完成测试！');
+            return;
         }
-    }
 
+        const btn = event.target;
+        const originalText = btn.textContent;
+        btn.textContent = '⏳ 生成中...';
+        btn.disabled = true;
+
+        html2canvas(resultCard, {
+            scale: 2,
+            useCORS: true,
+            backgroundColor: '#f5f0eb',
+            allowTaint: true,
+            logging: false
+        }).then(canvas => {
+            btn.textContent = originalText;
+            btn.disabled = false;
+
+            // 在手机上显示图片让用户长按保存
+            const imgData = canvas.toDataURL('image/png');
+            
+            // 创建遮罩层显示图片
+            const overlay = document.createElement('div');
+            overlay.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.8);z-index:9999;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:20px;';
+            
+            const img = document.createElement('img');
+            img.src = imgData;
+            img.style.cssText = 'max-width:100%;max-height:80%;border-radius:16px;box-shadow:0 8px 32px rgba(0,0,0,0.3);';
+            
+            const tip = document.createElement('p');
+            tip.textContent = '长按图片保存到相册 📱';
+            tip.style.cssText = 'color:white;font-size:16px;margin-top:16px;';
+            
+            const closeBtn = document.createElement('button');
+            closeBtn.textContent = '✕ 关闭';
+            closeBtn.style.cssText = 'background:white;color:#333;border:none;padding:12px 32px;border-radius:60px;font-size:16px;margin-top:12px;cursor:pointer;';
+            closeBtn.onclick = () => document.body.removeChild(overlay);
+            
+            overlay.appendChild(img);
+            overlay.appendChild(tip);
+            overlay.appendChild(closeBtn);
+            document.body.appendChild(overlay);
+            
+        }).catch(err => {
+            console.error('生成失败:', err);
+            btn.textContent = originalText;
+            btn.disabled = false;
+            alert('❌ 生成失败，请截图保存');
+        });
+    }
 </script>
 </body>
 </html>
