@@ -132,10 +132,10 @@ app.get('/api/stats', async (req, res) => {
         const result = await pool.query(`
             SELECT 
                 COUNT(*) as total_tests,
-                ROUND(AVG(E)::numeric, 2) as avg_E,
-                ROUND(AVG(V)::numeric, 2) as avg_V,
-                ROUND(AVG(S)::numeric, 2) as avg_S,
-                ROUND(AVG(D)::numeric, 2) as avg_D,
+                ROUND(AVG(E)::numeric, 2) as "avg_E",
+                ROUND(AVG(V)::numeric, 2) as "avg_V",
+                ROUND(AVG(S)::numeric, 2) as "avg_S",
+                ROUND(AVG(D)::numeric, 2) as "avg_D",
                 (
                     SELECT drink_name 
                     FROM test_results 
