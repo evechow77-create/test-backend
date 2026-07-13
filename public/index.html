@@ -3,16 +3,16 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=yes">
-    <title>浓淡风格测试 · 特调饮品版</title>
+    <title>浓淡性格测试 · 特调饮品版</title>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"></script>
-    <meta property="og:title" content="浓淡风格测试 · 特调饮品版" />
+    <meta property="og:title" content="浓淡性格测试 · 特调饮品版" />
     <meta property="og:description" content="16道题测出你的专属特调饮品，分享给你的朋友试试！" />
     <meta property="og:image" content="/images/00 浓淡封面.jpg" />
     <meta property="og:url" content="https://test-backend-9iya.onrender.com" />
     <meta property="og:type" content="website" />
     <!-- 微信兼容 -->
-    <meta itemprop="name" content="浓淡风格测试 · 特调饮品版">
+    <meta itemprop="name" content="浓淡性格测试 · 特调饮品版">
     <meta itemprop="description" content="16道题测出你的专属特调饮品！">
     <meta itemprop="image" content="/images/00 浓淡封面.jpg">
     <style>
@@ -235,7 +235,7 @@
         appDiv.innerHTML = `
             <div class="card">
                 <div class="header">
-                    <h1>🍹 浓淡风格测试</h1>
+                    <h1>🍹 浓淡性格测试</h1>
                     <div class="badge">特调饮品版 · 33种专属风味</div>
                 </div>
                 <div class="start-desc">
@@ -377,6 +377,9 @@ fetch('/api/save', {
 
         // 初始化雷达图
         setTimeout(() => {
+            let loadedCount = 0;
+            const totalImages = 2; // 饮品图片 + 雷达图
+            let allLoaded = false;
             const canvas = document.getElementById('radarChart');
             if (!canvas) return;
             const ctx = canvas.getContext('2d');
@@ -519,12 +522,58 @@ fetch('/api/save', {
             // 创建 Canvas
             const canvas = document.createElement('canvas');
             const ctx = canvas.getContext('2d');
-            
             const width = 600;
             const height = 1200; // 增加高度容纳更多内容
             canvas.width = width * 2;
             canvas.height = height * 2;
             ctx.scale(2, 2);
+
+            // ===== ✅ 在这里定义加载计数器 =====
+            let loadedCount = 0;
+            const totalImages = 2;
+
+            function checkAndShow() {
+                if (loadedCount >= totalImages) {
+                    showResult();
+                }
+            }
+
+            let resultShown = false;
+
+            function showResult() {
+                if (resultShown) return;
+                resultShown = true;
+
+                // 删除临时二维码容器
+                if (qrContainer && qrContainer.parentNode) {
+                    document.body.removeChild(qrContainer);
+                }
+
+                const imgData = canvas.toDataURL('image/png', 0.92);
+                btn.textContent = originalText;
+                btn.disabled = false;
+
+                const overlay = document.createElement('div');
+                overlay.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.85);z-index:9999;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:20px;';
+                
+                const resultImg = document.createElement('img');
+                resultImg.src = imgData;
+                resultImg.style.cssText = 'max-width:100%;max-height:75%;border-radius:16px;box-shadow:0 8px 32px rgba(0,0,0,0.3);';
+                
+                const tip = document.createElement('p');
+                tip.textContent = '📱 长按图片保存到相册';
+                tip.style.cssText = 'color:white;font-size:15px;margin-top:16px;';
+                
+                const closeBtn = document.createElement('button');
+                closeBtn.textContent = '✕ 关闭';
+                closeBtn.style.cssText = 'background:white;color:#333;border:none;padding:12px 40px;border-radius:60px;font-size:16px;margin-top:12px;cursor:pointer;';
+                closeBtn.onclick = function() { document.body.removeChild(overlay); };
+                
+                overlay.appendChild(resultImg);
+                overlay.appendChild(tip);
+                overlay.appendChild(closeBtn);
+                document.body.appendChild(overlay);
+            }
 
             // ---- 1. 背景 ----
             const gradient = ctx.createLinearGradient(0, 0, 0, height);
@@ -534,7 +583,7 @@ fetch('/api/save', {
             ctx.fillRect(0, 0, width, height);
 
             // ---- 2. 白色卡片（加大边距） ----
-            const pad = 30;
+            const pad = 50;
             ctx.shadowColor = 'rgba(0,0,0,0.08)';
             ctx.shadowBlur = 20;
             ctx.shadowOffsetY = 8;
@@ -553,7 +602,7 @@ fetch('/api/save', {
             ctx.font = 'bold 28px "PingFang SC", "Microsoft YaHei", sans-serif';
             ctx.textAlign = 'center';
             ctx.textBaseline = 'top';
-            ctx.fillText('🍹 浓淡风格测试', width / 2, currentY);
+            ctx.fillText('🍹 浓淡性格测试', width / 2, currentY);
             currentY += 50;
 
             // ---- 4. 饮品名称（加大） ----
@@ -609,12 +658,16 @@ fetch('/api/save', {
                         ctx.strokeStyle = '#e8e0d8';
                         ctx.lineWidth = 3;
                         ctx.stroke();
+                        loadedCount++;
+                        checkAndShow();
                     };
                     img.onerror = function() {
                         ctx.font = '60px sans-serif';
                         ctx.textAlign = 'center';
                         ctx.textBaseline = 'middle';
                         ctx.fillText('🍸', width / 2, imgY + imgSize / 2);
+                        loadedCount++;
+                        checkAndShow();
                     };
                 } catch(e) {
                     ctx.font = '60px sans-serif';
@@ -641,6 +694,8 @@ fetch('/api/save', {
                     currentY += radarSize + 30;
                     radarImg.onload = function() {
                         ctx.drawImage(radarImg, radarX, radarY, radarSize, radarSize);
+                        loadedCount++;
+                        checkAndShow();
                     };
                     radarImg.onerror = function() {
                         ctx.fillStyle = '#f0e8e0';
@@ -650,6 +705,8 @@ fetch('/api/save', {
                         ctx.textAlign = 'center';
                         ctx.textBaseline = 'middle';
                         ctx.fillText('📊', radarX + radarSize/2, radarY + radarSize/2);
+                        loadedCount++;
+                        checkAndShow();
                     };
                 } catch(e) {
                     currentY += 30;
@@ -764,37 +821,6 @@ fetch('/api/save', {
             ctx.fillStyle = '#cbbca8';
             ctx.font = '11px "PingFang SC", "Microsoft YaHei", sans-serif';
             ctx.fillText('test-backend-9iya.onrender.com', width - 50, height - 65);
-
-            // ---- 12. 删除临时二维码容器 ----
-            document.body.removeChild(qrContainer);
-
-            // ---- 13. 显示结果 ----
-            const imgData = canvas.toDataURL('image/png', 0.92);
-            
-            btn.textContent = originalText;
-            btn.disabled = false;
-
-            const overlay = document.createElement('div');
-            overlay.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.85);z-index:9999;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:20px;';
-            
-            const resultImg = document.createElement('img');
-            resultImg.src = imgData;
-            resultImg.style.cssText = 'max-width:100%;max-height:75%;border-radius:16px;box-shadow:0 8px 32px rgba(0,0,0,0.3);';
-            
-            const tip = document.createElement('p');
-            tip.textContent = '📱 长按图片保存到相册';
-            tip.style.cssText = 'color:white;font-size:15px;margin-top:16px;';
-            
-            const closeBtn = document.createElement('button');
-            closeBtn.textContent = '✕ 关闭';
-            closeBtn.style.cssText = 'background:white;color:#333;border:none;padding:12px 40px;border-radius:60px;font-size:16px;margin-top:12px;cursor:pointer;';
-            closeBtn.onclick = function() { document.body.removeChild(overlay); };
-            
-            overlay.appendChild(resultImg);
-            overlay.appendChild(tip);
-            overlay.appendChild(closeBtn);
-            document.body.appendChild(overlay);
-
         }, 500);
     }
 </script>
