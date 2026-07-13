@@ -6,7 +6,7 @@
     <title>浓淡性格测试 · 特调饮品版</title>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"></script>
-    <meta property="og:title" content="浓淡性格测试 · 特调饮品版" />
+    <meta property="og:titconst qrY = height - 170;le" content="浓淡性格测试 · 特调饮品版" />
     <meta property="og:description" content="16道题测出你的专属特调饮品，分享给你的朋友试试！" />
     <meta property="og:image" content="/images/00 浓淡封面.jpg" />
     <meta property="og:url" content="https://test-backend-9iya.onrender.com" />
@@ -523,7 +523,7 @@ fetch('/api/save', {
             const canvas = document.createElement('canvas');
             const ctx = canvas.getContext('2d');
             const width = 600;
-            const height = 1350; // 增加高度容纳更多内容
+            const height = 1280; // 增加高度容纳更多内容
             canvas.width = width * 2;
             canvas.height = height * 2;
             ctx.scale(2, 2);
@@ -779,7 +779,7 @@ fetch('/api/save', {
             // ---- 11. 二维码和底部信息 ----
             const qrSize = 100;
             const qrX = 75;
-            const qrY = height - 160;
+            const qrY = height - 170;
 
             // 绘制二维码
             try {
@@ -817,10 +817,10 @@ fetch('/api/save', {
             ctx.font = '13px "PingFang SC", "Microsoft YaHei", sans-serif';
             ctx.textAlign = 'right';
             ctx.textBaseline = 'bottom';
-            ctx.fillText('浓淡皆宜 · 每种配比都是一杯特调', width - 70, height - 45);
+            ctx.fillText('浓淡皆宜 · 每种配比都是一杯特调', width - 70, height - 60);
             ctx.fillStyle = '#cbbca8';
             ctx.font = '11px "PingFang SC", "Microsoft YaHei", sans-serif';
-            ctx.fillText('test-backend-9iya.onrender.com', width - 70, height - 65);
+            ctx.fillText('test-backend-9iya.onrender.com', width - 70, height - 80);
         }, 500);
     }
 </script>
