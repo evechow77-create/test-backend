@@ -440,6 +440,7 @@ fetch('/api/save', {
         alert('✅ 已复制链接！请打开微信粘贴给朋友～');
     }
 
+// ==================== 生成结果图（原生Canvas，完全重写） ====================
     function generateImage() {
         const resultCard = document.querySelector('.result-card');
         if (!resultCard) {
@@ -475,111 +476,156 @@ fetch('/api/save', {
         canvas.height = height * 2;
         ctx.scale(2, 2);
 
-        // 1. 背景
+        // ---- 1. 背景 ----
         const gradient = ctx.createLinearGradient(0, 0, 0, height);
         gradient.addColorStop(0, '#f5f0eb');
         gradient.addColorStop(1, '#e8e0d8');
         ctx.fillStyle = gradient;
         ctx.fillRect(0, 0, width, height);
 
-        // 2. 白色卡片
+        // ---- 2. 白色卡片 ----
         ctx.shadowColor = 'rgba(0,0,0,0.08)';
         ctx.shadowBlur = 20;
         ctx.shadowOffsetY = 8;
         ctx.fillStyle = '#ffffff';
+        // 手动绘制圆角矩形（不用 roundRect）
+        const cardX = 30, cardY = 30, cardW = width - 60, cardH = height - 60, cardR = 24;
         ctx.beginPath();
-        roundRect(ctx, 30, 30, width - 60, height - 60, 24);
+        ctx.moveTo(cardX + cardR, cardY);
+        ctx.lineTo(cardX + cardW - cardR, cardY);
+        ctx.quadraticCurveTo(cardX + cardW, cardY, cardX + cardW, cardY + cardR);
+        ctx.lineTo(cardX + cardW, cardY + cardH - cardR);
+        ctx.quadraticCurveTo(cardX + cardW, cardY + cardH, cardX + cardW - cardR, cardY + cardH);
+        ctx.lineTo(cardX + cardR, cardY + cardH);
+        ctx.quadraticCurveTo(cardX, cardY + cardH, cardX, cardY + cardH - cardR);
+        ctx.lineTo(cardX, cardY + cardR);
+        ctx.quadraticCurveTo(cardX, cardY, cardX + cardR, cardY);
+        ctx.closePath();
         ctx.fill();
         ctx.shadowColor = 'transparent';
         ctx.shadowBlur = 0;
         ctx.shadowOffsetY = 0;
 
-        // 3. 标题
+        // ---- 3. 标题 ----
         ctx.fillStyle = '#3b2e24';
         ctx.font = 'bold 26px "PingFang SC", "Microsoft YaHei", sans-serif';
         ctx.textAlign = 'center';
         ctx.textBaseline = 'top';
         ctx.fillText('🍹 浓淡风格测试', width / 2, 65);
 
-        // 4. 饮品名称
-        const nameGradient = ctx.createLinearGradient(0, 120, width, 120);
-        nameGradient.addColorStop(0, '#3b2e24');
-        nameGradient.addColorStop(1, '#b87c4f');
-        ctx.fillStyle = nameGradient;
+        // ---- 4. 饮品名称 ----
+        ctx.fillStyle = '#b87c4f';
         ctx.font = 'bold 38px "PingFang SC", "Microsoft YaHei", sans-serif';
+        ctx.textBaseline = 'top';
         ctx.fillText(drinkName, width / 2, 120);
 
-        // 5. 诗句
+        // ---- 5. 诗句 ----
         ctx.fillStyle = '#8b7a6b';
         ctx.font = '18px "PingFang SC", "Microsoft YaHei", sans-serif';
-        ctx.fillText('「' + poem + '」', width / 2, 180);
+        ctx.textBaseline = 'top';
+        ctx.fillText('「' + poem + '」', width / 2, 175);
 
-        // 6. 类型标签
+        // ---- 6. 类型标签 ----
         ctx.fillStyle = '#f3ede7';
+        const tagW = 120, tagH = 34, tagX = width / 2 - tagW / 2, tagY = 215, tagR = 17;
         ctx.beginPath();
-        roundRect(ctx, width / 2 - 60, 215, 120, 34, 17);
+        ctx.moveTo(tagX + tagR, tagY);
+        ctx.lineTo(tagX + tagW - tagR, tagY);
+        ctx.quadraticCurveTo(tagX + tagW, tagY, tagX + tagW, tagY + tagR);
+        ctx.lineTo(tagX + tagW, tagY + tagH - tagR);
+        ctx.quadraticCurveTo(tagX + tagW, tagY + tagH, tagX + tagW - tagR, tagY + tagH);
+        ctx.lineTo(tagX + tagR, tagY + tagH);
+        ctx.quadraticCurveTo(tagX, tagY + tagH, tagX, tagY + tagH - tagR);
+        ctx.lineTo(tagX, tagY + tagR);
+        ctx.quadraticCurveTo(tagX, tagY, tagX + tagR, tagY);
+        ctx.closePath();
         ctx.fill();
         ctx.fillStyle = '#7f6243';
         ctx.font = '14px monospace';
+        ctx.textAlign = 'center';
         ctx.textBaseline = 'middle';
-        ctx.fillText(typeText, width / 2, 232);
+        ctx.fillText(typeText, width / 2, tagY + tagH / 2);
 
-        // 7. 绘制饮品图片
+        // ---- 7. 饮品图片（从页面元素复制） ----
+        const imgX = width / 2 - 60;
+        const imgY = 270;
+        const imgSize = 120;
+
+        // 先画一个圆形占位背景
+        ctx.beginPath();
+        ctx.arc(width / 2, imgY + imgSize / 2, imgSize / 2, 0, Math.PI * 2);
+        ctx.fillStyle = '#f0e8e0';
+        ctx.fill();
+
+        // 如果存在图片元素，尝试绘制
         if (imgEl && imgEl.src) {
             try {
                 const img = new Image();
                 img.crossOrigin = 'anonymous';
                 img.src = imgEl.src;
                 img.onload = function() {
-                    const size = 120;
-                    const x = (width - size) / 2;
-                    const y = 275;
-                    // 绘制圆形裁剪
+                    // 绘制圆形图片
                     ctx.save();
                     ctx.beginPath();
-                    ctx.arc(width / 2, y + size / 2, size / 2, 0, Math.PI * 2);
+                    ctx.arc(width / 2, imgY + imgSize / 2, imgSize / 2, 0, Math.PI * 2);
                     ctx.clip();
-                    ctx.drawImage(img, x, y, size, size);
+                    ctx.drawImage(img, imgX, imgY, imgSize, imgSize);
                     ctx.restore();
-                    // 绘制边框
+                    // 边框
                     ctx.beginPath();
-                    ctx.arc(width / 2, y + size / 2, size / 2, 0, Math.PI * 2);
+                    ctx.arc(width / 2, imgY + imgSize / 2, imgSize / 2, 0, Math.PI * 2);
                     ctx.strokeStyle = '#e8e0d8';
                     ctx.lineWidth = 3;
                     ctx.stroke();
                 };
+                img.onerror = function() {
+                    // 图片加载失败，显示 emoji
+                    ctx.font = '60px sans-serif';
+                    ctx.textAlign = 'center';
+                    ctx.textBaseline = 'middle';
+                    ctx.fillText('🍸', width / 2, imgY + imgSize / 2);
+                };
             } catch(e) {
-                // 图片加载失败，显示 emoji
                 ctx.font = '60px sans-serif';
                 ctx.textAlign = 'center';
                 ctx.textBaseline = 'middle';
-                ctx.fillText('🍸', width / 2, 340);
+                ctx.fillText('🍸', width / 2, imgY + imgSize / 2);
             }
         } else {
             ctx.font = '60px sans-serif';
             ctx.textAlign = 'center';
             ctx.textBaseline = 'middle';
-            ctx.fillText('🍸', width / 2, 340);
+            ctx.fillText('🍸', width / 2, imgY + imgSize / 2);
         }
 
-        // 8. 绘制雷达图
+        // ---- 8. 雷达图 ----
         if (radarCanvas) {
             try {
                 const radarDataUrl = radarCanvas.toDataURL('image/png');
                 const radarImg = new Image();
                 radarImg.src = radarDataUrl;
+                const radarSize = 200;
+                const radarX = (width - radarSize) / 2;
+                const radarY = 420;
                 radarImg.onload = function() {
-                    const radarSize = 200;
-                    const radarX = (width - radarSize) / 2;
-                    const radarY = 420;
                     ctx.drawImage(radarImg, radarX, radarY, radarSize, radarSize);
                 };
+                radarImg.onerror = function() {
+                    // 雷达图加载失败，画一个提示
+                    ctx.fillStyle = '#f0e8e0';
+                    ctx.fillRect(radarX, radarY, radarSize, radarSize);
+                    ctx.fillStyle = '#b8a48c';
+                    ctx.font = '16px sans-serif';
+                    ctx.textAlign = 'center';
+                    ctx.textBaseline = 'middle';
+                    ctx.fillText('📊', radarX + radarSize/2, radarY + radarSize/2);
+                };
             } catch(e) {
-                console.log('雷达图绘制失败');
+                // 忽略
             }
         }
 
-        // 9. 摘要（最多4行）
+        // ---- 9. 摘要文字 ----
         ctx.fillStyle = '#2c241e';
         ctx.font = '14px "PingFang SC", "Microsoft YaHei", sans-serif';
         ctx.textAlign = 'center';
@@ -603,18 +649,48 @@ fetch('/api/save', {
             ctx.fillText(line, width / 2, summaryStartY + index * 26);
         });
 
-        // 10. 底部信息
+        // ---- 10. 底部信息 ----
         const bottomY = height - 70;
         ctx.fillStyle = '#b8a48c';
         ctx.font = '12px "PingFang SC", "Microsoft YaHei", sans-serif';
+        ctx.textAlign = 'center';
         ctx.textBaseline = 'bottom';
         ctx.fillText('浓淡皆宜 · 每种配比都是一杯特调', width / 2, bottomY);
         ctx.fillStyle = '#cbbca8';
         ctx.font = '11px "PingFang SC", "Microsoft YaHei", sans-serif';
         ctx.fillText('测试链接：test-backend-9iya.onrender.com', width / 2, bottomY - 22);
 
-        // 11. 等待图片加载完成后显示
-        setTimeout(() => {
+        // ---- 11. 等待绘制完成，显示结果 ----
+        // 等待图片和雷达图加载完成
+        let loadedCount = 0;
+        const totalToLoad = 2; // 饮品图片 + 雷达图
+
+        function checkAndShow() {
+            loadedCount++;
+            if (loadedCount >= totalToLoad) {
+                showResult();
+            }
+        }
+
+        // 如果饮品图片存在，等待它加载
+        if (imgEl && imgEl.src) {
+            // 但图片已经在上面用 onload 处理了，这里用 setTimeout 兜底
+            setTimeout(checkAndShow, 500);
+        } else {
+            loadedCount++;
+        }
+
+        // 雷达图等待
+        if (radarCanvas) {
+            setTimeout(checkAndShow, 500);
+        } else {
+            loadedCount++;
+        }
+
+        // 兜底：2秒后强制显示
+        setTimeout(showResult, 2000);
+
+        function showResult() {
             const imgData = canvas.toDataURL('image/png', 0.92);
             
             btn.textContent = originalText;
@@ -640,23 +716,7 @@ fetch('/api/save', {
             overlay.appendChild(tip);
             overlay.appendChild(closeBtn);
             document.body.appendChild(overlay);
-        }, 800);
-    }
-
-    // 辅助函数：绘制圆角矩形
-    function roundRect(ctx, x, y, w, h, r) {
-        if (r > w/2) r = w/2;
-        if (r > h/2) r = h/2;
-        ctx.moveTo(x + r, y);
-        ctx.lineTo(x + w - r, y);
-        ctx.quadraticCurveTo(x + w, y, x + w, y + r);
-        ctx.lineTo(x + w, y + h - r);
-        ctx.quadraticCurveTo(x + w, y + h, x + w - r, y + h);
-        ctx.lineTo(x + r, y + h);
-        ctx.quadraticCurveTo(x, y + h, x, y + h - r);
-        ctx.lineTo(x, y + r);
-        ctx.quadraticCurveTo(x, y, x + r, y);
-        return ctx;
+        }
     }
 </script>
 </body>
