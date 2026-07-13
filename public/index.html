@@ -6,7 +6,7 @@
     <title>浓淡性格测试 · 特调饮品版</title>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"></script>
-    <meta property="og:titconst qrY = height - 180;le" content="浓淡性格测试 · 特调饮品版" />
+    <meta property="og:title" content="浓淡性格测试 · 特调饮品版" />
     <meta property="og:description" content="16道题测出你的专属特调饮品，分享给你的朋友试试！" />
     <meta property="og:image" content="/images/00 浓淡封面.jpg" />
     <meta property="og:url" content="https://test-backend-9iya.onrender.com" />
@@ -405,6 +405,9 @@
 
         const category = categoryMap[typeName] || { name: '均衡型', icon: '🥛', sub: '奶类' };
 
+        window._typeName = typeName;
+        window._category = category;
+
         // ===== 提交数据到后端 =====
         const userData = {
             timestamp: new Date().toISOString(),
@@ -447,10 +450,10 @@
                 <div class="center">
                     <div class="type-box">E${eIdx===0?'-':(eIdx===1?'=':'+')} V${vIdx===0?'-':(vIdx===1?'=':'+')} S${sIdx===0?'-':(sIdx===1?'=':'+')} D${dIdx===0?'-':(dIdx===1?'=':'+')}</div>
                          <div style="text-align:center;margin-top:6px;">
-                            <span style="background:#f0e8e0;padding:4px 16px;border-radius:40px;font-size:14px;color:#7f6243;">
+                            <span style="background:#dbeafe;padding:4px 16px;border-radius:40px;font-size:14px;color:#1e40af;font-weight:500;white-space:nowrap;">
                                 ${category.icon} ${category.name} · ${category.sub}
                             </span>
-                            <span style="background:#e8e0d8;padding:4px 16px;border-radius:40px;font-size:13px;color:#5e4b3a;margin-left:8px;">
+                            <span style="background:#d1fae5;padding:4px 16px;border-radius:40px;font-size:13px;color:#065f46;font-weight:500;white-space:nowrap;">
                                 ${typeName}
                             </span>
                         </div>
@@ -585,7 +588,7 @@
     }
 
     // ==================== 生成结果图 ====================
-    function generateImage() {
+    function generateImage(event) {
         const resultCard = document.querySelector('.result-card');
         if (!resultCard) {
             alert('请先完成测试！');
@@ -626,6 +629,11 @@
             }
         }
 
+        // 从全局获取类型信息
+        const typeName = window._typeName || '';
+        const category = window._category || { icon: '', name: '', sub: '' };
+        const categoryStr = category.icon + ' ' + category.name + ' · ' + category.sub;
+
         // ---- 先在一个隐藏元素中生成二维码 ----
         const qrContainer = document.createElement('div');
         qrContainer.style.cssText = 'position:fixed;top:-9999px;left:-9999px;width:200px;height:200px;background:white;display:flex;align-items:center;justify-content:center;';
@@ -648,14 +656,70 @@
         // 等待二维码生成
         setTimeout(() => {
 
-            // 创建 Canvas
-            const canvas = document.createElement('canvas');
-            const ctx = canvas.getContext('2d');
-            const width = 600;
-            const height = 1350; // 增加高度容纳更多内容
-            canvas.width = width * 2;
-            canvas.height = height * 2;
-            ctx.scale(2, 2);
+        // 创建 Canvas
+        const canvas = document.createElement('canvas');
+        const ctx = canvas.getContext('2d');
+        const baseWidth = 600;
+        const pad = 50;
+        const contentWidth = baseWidth - pad * 2;
+
+        // ---- 辅助函数：计算文本需要多少行 ----
+        function calcTextLines(text, maxWidth, fontSize) {
+            ctx.font = fontSize + 'px "PingFang SC", "Microsoft YaHei", sans-serif';
+            let lines = 0;
+            let currentLine = '';
+            for (let char of text) {
+                if (ctx.measureText(currentLine + char).width > maxWidth) {
+                    lines++;
+                    currentLine = char;
+                } else {
+                    currentLine += char;
+                }
+            }
+            if (currentLine) lines++;
+            return lines;
+        }
+
+        // ---- 动态计算总高度 ----
+        let estimatedHeight = pad * 2; // 上下边距
+
+        // 1. 标题区域
+        estimatedHeight += 50; // "🍹 浓淡性格测试"
+        estimatedHeight += 55; // 饮品名称
+        estimatedHeight += 40; // 诗句
+        estimatedHeight += 40; // 类型标签（合并后的一行）
+
+        // 2. 饮品图片
+        const imgSize = 120;
+        estimatedHeight += imgSize + 25;
+
+        // 3. 雷达图
+        const radarSize = 200;
+        estimatedHeight += radarSize + 30;
+
+        // 4. 四个维度描述（每个维度最多3行）
+        const dimMaxWidth = contentWidth - 40 - 30;
+        dimensions.forEach((dim) => {
+            const lines = calcTextLines(dim.text, dimMaxWidth, 14);
+            estimatedHeight += 24 + Math.min(lines, 3) * 22; // 标题行 + 描述行
+        });
+
+        // 5. 总评摘要（最多6行）
+        const summaryMaxWidth = contentWidth - 40;
+        const summaryLines = calcTextLines(summary, summaryMaxWidth, 15);
+        estimatedHeight += Math.min(summaryLines, 6) * 26 + 30;
+
+        // 6. 底部二维码区域
+        estimatedHeight += 120;
+
+        // 最终高度（保底 900px）
+        const height = Math.max(estimatedHeight, 900);
+        const width = baseWidth;
+
+        // ---- 设置画布大小 ----
+        canvas.width = width * 2;
+        canvas.height = height * 2;
+        ctx.scale(2, 2);
 
             // ===== ✅ 在这里定义加载计数器 =====
             let loadedCount = 0;
@@ -757,7 +821,39 @@
             ctx.font = '15px monospace';
             ctx.textBaseline = 'middle';
             ctx.fillText(typeText, width / 2, currentY + 18);
-            currentY += 50;
+            currentY += 46;
+
+            // 合并 7大类 + 25类型 为一行
+            const label1 = categoryStr;  // 如 "🍸 全浓型 · 酒类"
+            const label2 = typeName;     // 如 "内浓外浓"
+            const label1Width = 160;     // 稍微加宽一点，容纳更多文字
+            const label2Width = 110;
+            const gap = 12;
+            const totalWidth = label1Width + gap + label2Width;
+            const startX = (width - totalWidth) / 2;
+            const labelHeight = 32;
+
+            // 7大类标签（淡蓝色）
+            ctx.fillStyle = '#dbeafe';
+            ctx.beginPath();
+            drawRoundRect(ctx, startX, currentY, label1Width, labelHeight, 16);
+            ctx.fill();
+            ctx.fillStyle = '#1e40af';
+            ctx.font = '13px "PingFang SC", "Microsoft YaHei", sans-serif';
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            ctx.fillText(label1, startX + label1Width / 2, currentY + labelHeight / 2);
+
+            // 25类型标签（淡绿色）
+            ctx.fillStyle = '#d1fae5';
+            ctx.beginPath();
+            drawRoundRect(ctx, startX + label1Width + gap, currentY, label2Width, labelHeight, 16);
+            ctx.fill();
+            ctx.fillStyle = '#065f46';
+            ctx.font = '12px "PingFang SC", "Microsoft YaHei", sans-serif';
+            ctx.fillText(label2, startX + label1Width + gap + label2Width / 2, currentY + labelHeight / 2);
+
+            currentY += labelHeight + 18;  // 标签高度 + 下方间距
 
             // ---- 7. 饮品图片（加大） ----
             const imgSize = 120;
@@ -849,20 +945,45 @@
             ctx.textAlign = 'left';
             ctx.textBaseline = 'top';
 
+            // 辅助函数：文本自动换行
+            function wrapTextToLines(ctx, text, maxWidth, maxLines) {
+                const lines = [];
+                let currentLine = '';
+                for (let char of text) {
+                    const testLine = currentLine + char;
+                    if (ctx.measureText(testLine).width > maxWidth) {
+                        if (lines.length >= maxLines - 1) {
+                            // 到达最大行数，截断并加省略号
+                            if (currentLine.length > 0) {
+                                lines.push(currentLine + '…');
+                            }
+                            return lines;
+                        }
+                        lines.push(currentLine);
+                        currentLine = char;
+                    } else {
+                        currentLine += char;
+                    }
+                }
+                if (currentLine && lines.length < maxLines) {
+                    lines.push(currentLine);
+                }
+                return lines;
+            }
+
             dimensions.forEach((dim, index) => {
-                const y = dimStartY + index * 80;
+                const y = dimStartY + index * 90;
                 
+                // 1. 标题
                 ctx.fillStyle = '#5e4b3a';
                 ctx.font = 'bold 16px "PingFang SC", "Microsoft YaHei", sans-serif';
                 ctx.textAlign = 'left';
                 ctx.textBaseline = 'top';
-
-                // 先绘制标题文字
                 ctx.fillText(dim.title, 70, y);
 
-                // 再绘制气泡背景（圆角矩形或圆形）
-                const labelX = 70 + 130;  // 标题文字宽度 + 8px 间距
-                const labelY = y + 2;
+                // 2. 气泡标签
+                const labelX = 70 + 100;  // 标题文字宽度 + 8px 间距
+                const labelY = y;
                 const labelW = 28;
                 const labelH = 28;
                 const radius = 14;
@@ -879,26 +1000,17 @@
                 ctx.textBaseline = 'middle';
                 ctx.fillText(dim.label, labelX + labelW/2, labelY + labelH/2);
                 
-                // 4. 绘制正文（从 70 + 40 开始，避开气泡）
+                // 3. 描述正文（自动换行，最多3行）
                 ctx.fillStyle = '#2c241e';
                 ctx.font = '14px "PingFang SC", "Microsoft YaHei", sans-serif';
                 ctx.textAlign = 'left';
                 ctx.textBaseline = 'top';
+
                 const text = dim.text || '';
-                const maxWidth2 = width - 140 - 40;  // 减去气泡占用的宽度
-                let lines2 = [];
-                let currentLine2 = '';
-                for (let char of text) {
-                    if (ctx.measureText(currentLine2 + char).width > maxWidth2) {
-                        lines2.push(currentLine2);
-                        currentLine2 = char;
-                    } else {
-                        currentLine2 += char;
-                    }
-                }
-                if (currentLine2) lines2.push(currentLine2);
+                const maxWidth2 = width - 140 - 30;  // 减去气泡占用的宽度
+                const lines2 = wrapTextToLines(ctx, text, maxWidth2, 3);
                 
-                lines2.slice(0, 2).forEach((line, idx) => {
+                lines2.forEach((line, idx) => {
                     ctx.fillText(line, 70 + 40, y + 24 + idx * 22);
                 });
             });
