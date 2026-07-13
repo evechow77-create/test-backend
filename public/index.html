@@ -663,6 +663,10 @@
         const pad = 50;
         const contentWidth = baseWidth - pad * 2;
 
+        // ===== 固定尺寸常量 =====
+        const imgSize = 120;
+        const radarSize = 200;
+
         // ---- 辅助函数：计算文本需要多少行 ----
         function calcTextLines(text, maxWidth, fontSize) {
             ctx.font = fontSize + 'px "PingFang SC", "Microsoft YaHei", sans-serif';
@@ -690,11 +694,9 @@
         estimatedHeight += 40; // 类型标签（合并后的一行）
 
         // 2. 饮品图片
-        const imgSize = 120;
         estimatedHeight += imgSize + 25;
 
         // 3. 雷达图
-        const radarSize = 200;
         estimatedHeight += radarSize + 30;
 
         // 4. 四个维度描述（每个维度最多3行）
@@ -915,7 +917,6 @@
                 const radarDataUrl = radarCanvas.toDataURL('image/png');
                 const radarImg = new Image();
                 radarImg.src = radarDataUrl;
-                const radarSize = 200;
                 const radarX = (width - radarSize) / 2;
                 const radarY = currentY;
                 currentY += radarSize + 30;
