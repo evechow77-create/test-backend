@@ -61,14 +61,22 @@
         @media (min-width: 500px) {
             .type-box { padding: 8px 20px; font-size: 14px; }
         }
-        .radar-box { margin: 16px 0 20px; height: 240px; position: relative; width: 100%; }
-        @media (min-width: 500px) {
-            .radar-box { margin: 20px 0 28px; height: 280px; }
+        .radar-box { 
+            margin: 16px auto 20px; 
+            width: 100%; 
+            max-width: 280px; 
+            aspect-ratio: 1/1;
+            position: relative; 
         }
-        .radar-box canvas { width: 100% !important; height: 100% !important; }
-        .report-text { background: #faf8f5; padding: 16px; border-radius: 20px; line-height: 1.7; font-size: 14px; color: #2c241e; margin: 8px 0 16px; }
+        .radar-box canvas { 
+            width: 100% !important; 
+            height: 100% !important; 
+        }
         @media (min-width: 500px) {
-            .report-text { padding: 20px; font-size: 14px; margin: 10px 0 20px; }
+            .radar-box { 
+                max-width: 320px; 
+                margin: 20px auto 28px;
+            }
         }
         .dimension-section { margin: 12px 0 16px; }
         @media (min-width: 500px) {
@@ -491,7 +499,7 @@
                     <button onclick="shareTest()" style="background:#9b7b5c; color:white; border:none; padding:12px 28px; border-radius:60px; font-size:15px; cursor:pointer; box-shadow:0 4px 8px rgba(0,0,0,0.05);">
                         📤 分享测试
                     </button>
-                    <button onclick="generateImage()" style="background:#6c5b4a; color:white; border:none; padding:12px 28px; border-radius:60px; font-size:15px; cursor:pointer;">
+                    <button onclick="generateImage(event)" style="background:#6c5b4a; color:white; border:none; padding:12px 28px; border-radius:60px; font-size:15px; cursor:pointer;">
                         🖼️ 生成结果图
                     </button>
                 </div>
@@ -665,7 +673,7 @@
 
         // ===== 固定尺寸常量 =====
         const imgSize = 120;
-        const radarSize = 200;
+        const radarSize = 260;
 
         // ---- 辅助函数：计算文本需要多少行 ----
         function calcTextLines(text, maxWidth, fontSize) {
@@ -688,38 +696,75 @@
         let estimatedHeight = pad * 2; // 上下边距
 
         // 1. 标题区域
-        estimatedHeight += 50; // "🍹 浓淡性格测试"
-        estimatedHeight += 55; // 饮品名称
-        estimatedHeight += 40; // 诗句
-        estimatedHeight += 40; // 类型标签（合并后的一行）
+        estimatedHeight += 60; // "🍹 浓淡性格测试"
+        estimatedHeight += 65; // 饮品名称
+        estimatedHeight += 50; // 诗句
+        estimatedHeight += 50; // 类型标签（合并后的一行）
 
         // 2. 饮品图片
-        estimatedHeight += imgSize + 25;
+        estimatedHeight += imgSize + 35;
 
         // 3. 雷达图
-        estimatedHeight += radarSize + 30;
+        estimatedHeight += radarSize + 40;
 
-        // 4. 四个维度描述（每个维度最多3行）
+        // 4. 四个维度描述（根据实际行数动态计算，不截断）
         const dimMaxWidth = contentWidth - 40 - 30;
-        dimensions.forEach((dim) => {
-            const lines = calcTextLines(dim.text, dimMaxWidth, 14);
-            estimatedHeight += 24 + Math.min(lines, 3) * 22; // 标题行 + 描述行
-        });
+        const lineHeight = 24;
+        const titleHeight = 24;
+        const titleGap = 6;
+        const dimGap = 16;
 
-        // 5. 总评摘要（最多6行）
+        let totalDimHeight = 0;
+        dimensions.forEach((dim) => {
+            // 计算这个维度的文字会分成几行
+            const lines = [];
+            let currentLine = '';
+            for (let char of dim.text || '') {
+                const testLine = currentLine + char;
+                // 使用canvas测量，但此时还没有ctx，用估算
+                const charWidth = 14;
+                if ((currentLine.length + 1) * charWidth > dimMaxWidth) {
+                    lines.push(currentLine);
+                    currentLine = char;
+                } else {
+                    currentLine += char;
+                }
+            }
+            if (currentLine) lines.push(currentLine);
+            
+            const descHeight = lines.length * lineHeight;
+            const dimTotalHeight = titleHeight + titleGap + descHeight;
+            totalDimHeight += dimTotalHeight + dimGap;
+        });
+        estimatedHeight += totalDimHeight + 20;
+
+        // 5. 总评摘要（根据实际行数动态计算，不截断）
         const summaryMaxWidth = contentWidth - 40;
-        const summaryLines = calcTextLines(summary, summaryMaxWidth, 15);
-        estimatedHeight += Math.min(summaryLines, 6) * 26 + 30;
+        const summaryLines = [];
+        let currentLine = '';
+        for (let char of summary) {
+            const testLine = currentLine + char;
+            const charWidth = 15;
+            if ((currentLine.length + 1) * charWidth > summaryMaxWidth) {
+                summaryLines.push(currentLine);
+                currentLine = char;
+            } else {
+                currentLine += char;
+            }
+        }
+        if (currentLine) summaryLines.push(currentLine);
+
+        estimatedHeight += summaryLines.length * 28 + 40;
 
         // 6. 底部二维码区域
-        estimatedHeight += 120;
+        estimatedHeight += 140;
 
-        // 最终高度（保底 900px）
-        const height = Math.max(estimatedHeight, 900);
+        // 最终高度（保底 1600px）
+        const height = Math.max(estimatedHeight, 1600);
         const width = baseWidth;
 
         // ---- 设置画布大小 ----
-        canvas.width = width * 2;
+        canvas.width = baseWidth * 2;
         canvas.height = height * 2;
         ctx.scale(2, 2);
 
@@ -919,7 +964,7 @@
                 radarImg.src = radarDataUrl;
                 const radarX = (width - radarSize) / 2;
                 const radarY = currentY;
-                currentY += radarSize + 30;
+                currentY += radarSize + 40;
                 radarImg.onload = function() {
                     ctx.drawImage(radarImg, radarX, radarY, radarSize, radarSize);
                     loadedCount++;
@@ -947,50 +992,51 @@
             checkAndShow();
         }
 
-        // ---- 9. 四个维度详情（加大字号） ----
+        // ---- 9. 四个维度详情（显示全部文字，自适应高度） ----
         const dimStartY = currentY;
         ctx.textAlign = 'left';
         ctx.textBaseline = 'top';
 
-        // 辅助函数：文本自动换行
-        function wrapTextToLines(ctx, text, maxWidth, maxLines) {
+        // 用于计算每个维度的实际行数
+        const dimInfos = [];
+        dimensions.forEach((dim) => {
+            const maxWidth2 = contentWidth - 110 - 30;
             const lines = [];
             let currentLine = '';
-            for (let char of text) {
+            for (let char of dim.text || '') {
                 const testLine = currentLine + char;
-                if (ctx.measureText(testLine).width > maxWidth) {
-                    if (lines.length >= maxLines - 1) {
-                        // 到达最大行数，截断并加省略号
-                        if (currentLine.length > 0) {
-                            lines.push(currentLine + '…');
-                        }
-                        return lines;
-                    }
-                    lines.push(currentLine);
+                if (ctx.measureText(testLine).width > maxWidth2) {
+                    if (currentLine) lines.push(currentLine); 
                     currentLine = char;
                 } else {
                     currentLine += char;
                 }
             }
-            if (currentLine && lines.length < maxLines) {
-                lines.push(currentLine);
-            }
-            return lines;
-        }
+            if (currentLine) lines.push(currentLine);
+            if (lines.length === 0) lines.push('');
+            dimInfos.push({
+                lines: lines,
+                lineCount: lines.length
+            });
+        });
+
+        // 根据内容动态计算每个维度的Y位置
+        let dimY = dimStartY;
 
         dimensions.forEach((dim, index) => {
-            const y = dimStartY + index * 90;
+            const dimInfo = dimInfos[index];
+            const lines = dimInfo.lines;
             
             // 1. 标题
             ctx.fillStyle = '#5e4b3a';
             ctx.font = 'bold 16px "PingFang SC", "Microsoft YaHei", sans-serif';
             ctx.textAlign = 'left';
             ctx.textBaseline = 'top';
-            ctx.fillText(dim.title, 70, y);
+            ctx.fillText(dim.title, 70, dimY);
 
             // 2. 气泡标签
-            const labelX = 70 + 100;  // 标题文字宽度 + 8px 间距
-            const labelY = y;
+            const labelX = 70 + 100;
+            const labelY = dimY;
             const labelW = 28;
             const labelH = 28;
             const radius = 14;
@@ -1007,46 +1053,53 @@
             ctx.textBaseline = 'middle';
             ctx.fillText(dim.label, labelX + labelW/2, labelY + labelH/2);
             
-            // 3. 描述正文（自动换行，最多3行）
+            // 4. 描述正文（显示全部行，不截断）
             ctx.fillStyle = '#2c241e';
             ctx.font = '14px "PingFang SC", "Microsoft YaHei", sans-serif';
             ctx.textAlign = 'left';
             ctx.textBaseline = 'top';
 
-            const text = dim.text || '';
-            const maxWidth2 = width - 140 - 30;  // 减去气泡占用的宽度
-            const lines2 = wrapTextToLines(ctx, text, maxWidth2, 3);
-            
-            lines2.forEach((line, idx) => {
-                ctx.fillText(line, 70 + 40, y + 24 + idx * 22);
+            const lineStartY = dimY + titleHeight + titleGap;
+            lines.forEach((line, idx) => {
+                ctx.fillText(line, 70 + 40, lineStartY + idx * lineHeight);
             });
+            
+            // 根据实际行数计算本维度占用的高度
+            const descHeight = lines.length * lineHeight;
+            const dimTotalHeight = titleHeight + titleGap + descHeight;
+            dimY += dimTotalHeight + dimGap;
         });
 
-        currentY = dimStartY + 4 * 80 + 20;
+        currentY = dimY + 20;
 
-        // ---- 10. 总评摘要（加大字号） ----
+        // ---- 10. 总评摘要（显示全部文字，不截断） ----
         ctx.fillStyle = '#2c241e';
         ctx.font = '15px "PingFang SC", "Microsoft YaHei", sans-serif';
         ctx.textAlign = 'center';
         ctx.textBaseline = 'top';
-        
-        const maxWidth3 = width - 140;
-        let lines3 = [];
+
+        const maxWidth3 = contentWidth - 80;
+        // 计算摘要会分几行（不截断）
+        summaryLines.length = 0;   // ← 清空数组，复用
         let currentLine3 = '';
         for (let char of summary) {
-            if (ctx.measureText(currentLine3 + char).width > maxWidth3) {
-                lines3.push(currentLine3);
+            const testLine = currentLine3 + char;
+            if (ctx.measureText(testLine).width > maxWidth3) {
+                if (currentLine3) summaryLines.push(currentLine3);
                 currentLine3 = char;
             } else {
                 currentLine3 += char;
             }
         }
-        if (currentLine3) lines3.push(currentLine3);
-        
-        lines3.slice(0, 6).forEach((line, index) => {
-            ctx.fillText(line, width / 2, currentY + index * 26);
+        if (currentLine3) summaryLines.push(currentLine3);
+        if (summaryLines.length === 0) summaryLines.push('');
+
+        // 显示全部行
+        const summaryLineHeight = 26;
+        summaryLines.forEach((line, index) => {
+            ctx.fillText(line, width / 2, currentY + index * summaryLineHeight);
         });
-        currentY += Math.min(lines3.length, 6) * 26 + 30;
+        currentY += summaryLines.length * summaryLineHeight + 30;
 
         // ---- 11. 二维码和底部信息 ----
         const qrSize = 100;
