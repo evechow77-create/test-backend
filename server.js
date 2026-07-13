@@ -47,7 +47,19 @@ pool.query(`
         ip_address TEXT,
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
     )
-`).catch(err => console.error('创建表失败:', err));
+`)
+.then(() => {
+    console.log('✅ test_results 表已就绪');
+    // 🔧 添加缺失字段（兼容旧表）
+    return pool.query(`
+        ALTER TABLE test_results ADD COLUMN IF NOT EXISTS type_25 TEXT;
+        ALTER TABLE test_results ADD COLUMN IF NOT EXISTS category_name TEXT;
+        ALTER TABLE test_results ADD COLUMN IF NOT EXISTS category_icon TEXT;
+        ALTER TABLE test_results ADD COLUMN IF NOT EXISTS category_sub TEXT;
+    `);
+})
+.then(() => console.log('✅ 表字段已更新'))
+.catch(err => console.error('❌ 表创建/更新失败:', err));
 
 pool.query(`
     CREATE TABLE IF NOT EXISTS test_answers (
@@ -56,7 +68,9 @@ pool.query(`
         question_index INTEGER,
         answer_value INTEGER
     )
-`).catch(err => console.error('创建表失败:', err));
+`)
+.then(() => console.log('✅ test_answers 表已就绪'))
+.catch(err => console.error('❌ 创建 test_answers 表失败:', err));
 
 console.log('✅ PostgreSQL 已连接');
 
