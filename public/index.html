@@ -5,7 +5,6 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=yes">
     <title>浓淡风格测试 · 特调饮品版</title>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
     <meta property="og:title" content="浓淡风格测试 · 特调饮品版" />
     <meta property="og:description" content="16道题测出你的专属特调饮品，分享给你的朋友试试！" />
     <meta property="og:image" content="/images/00 浓淡封面.jpg" />
@@ -453,77 +452,211 @@ fetch('/api/save', {
         btn.textContent = '⏳ 生成中...';
         btn.disabled = true;
 
-        // 显示加载提示
-        const loadingEl = document.createElement('div');
-        loadingEl.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.7);z-index:9998;display:flex;align-items:center;justify-content:center;color:white;font-size:18px;flex-direction:column;';
-        loadingEl.innerHTML = '<div style="font-size:40px;margin-bottom:16px;">⏳</div><p>正在生成图片，请稍候...</p>';
-        document.body.appendChild(loadingEl);
+        // 获取数据
+        const drinkNameEl = document.querySelector('.drink-name');
+        const poemEl = document.querySelector('.drink-poem');
+        const typeEl = document.querySelector('.type-box');
+        const radarCanvas = document.getElementById('radarChart');
+        const imgEl = document.querySelector('.drink-image');
+        
+        const drinkName = drinkNameEl ? drinkNameEl.textContent : '未知饮品';
+        const poem = poemEl ? poemEl.textContent : '';
+        const typeText = typeEl ? typeEl.textContent : '';
+        const summaryEl = document.querySelector('.report-text p');
+        const summary = summaryEl ? summaryEl.textContent : '';
 
-        // 给截图区域临时添加白色背景，防止透明
-        resultCard.style.backgroundColor = '#ffffff';
+        // 创建 Canvas
+        const canvas = document.createElement('canvas');
+        const ctx = canvas.getContext('2d');
+        
+        const width = 600;
+        const height = 900;
+        canvas.width = width * 2;
+        canvas.height = height * 2;
+        ctx.scale(2, 2);
 
-        // 延迟执行，让 UI 先更新
+        // 1. 背景
+        const gradient = ctx.createLinearGradient(0, 0, 0, height);
+        gradient.addColorStop(0, '#f5f0eb');
+        gradient.addColorStop(1, '#e8e0d8');
+        ctx.fillStyle = gradient;
+        ctx.fillRect(0, 0, width, height);
+
+        // 2. 白色卡片
+        ctx.shadowColor = 'rgba(0,0,0,0.08)';
+        ctx.shadowBlur = 20;
+        ctx.shadowOffsetY = 8;
+        ctx.fillStyle = '#ffffff';
+        ctx.beginPath();
+        roundRect(ctx, 30, 30, width - 60, height - 60, 24);
+        ctx.fill();
+        ctx.shadowColor = 'transparent';
+        ctx.shadowBlur = 0;
+        ctx.shadowOffsetY = 0;
+
+        // 3. 标题
+        ctx.fillStyle = '#3b2e24';
+        ctx.font = 'bold 26px "PingFang SC", "Microsoft YaHei", sans-serif';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'top';
+        ctx.fillText('🍹 浓淡风格测试', width / 2, 65);
+
+        // 4. 饮品名称
+        const nameGradient = ctx.createLinearGradient(0, 120, width, 120);
+        nameGradient.addColorStop(0, '#3b2e24');
+        nameGradient.addColorStop(1, '#b87c4f');
+        ctx.fillStyle = nameGradient;
+        ctx.font = 'bold 38px "PingFang SC", "Microsoft YaHei", sans-serif';
+        ctx.fillText(drinkName, width / 2, 120);
+
+        // 5. 诗句
+        ctx.fillStyle = '#8b7a6b';
+        ctx.font = '18px "PingFang SC", "Microsoft YaHei", sans-serif';
+        ctx.fillText('「' + poem + '」', width / 2, 180);
+
+        // 6. 类型标签
+        ctx.fillStyle = '#f3ede7';
+        ctx.beginPath();
+        roundRect(ctx, width / 2 - 60, 215, 120, 34, 17);
+        ctx.fill();
+        ctx.fillStyle = '#7f6243';
+        ctx.font = '14px monospace';
+        ctx.textBaseline = 'middle';
+        ctx.fillText(typeText, width / 2, 232);
+
+        // 7. 绘制饮品图片
+        if (imgEl && imgEl.src) {
+            try {
+                const img = new Image();
+                img.crossOrigin = 'anonymous';
+                img.src = imgEl.src;
+                img.onload = function() {
+                    const size = 120;
+                    const x = (width - size) / 2;
+                    const y = 275;
+                    // 绘制圆形裁剪
+                    ctx.save();
+                    ctx.beginPath();
+                    ctx.arc(width / 2, y + size / 2, size / 2, 0, Math.PI * 2);
+                    ctx.clip();
+                    ctx.drawImage(img, x, y, size, size);
+                    ctx.restore();
+                    // 绘制边框
+                    ctx.beginPath();
+                    ctx.arc(width / 2, y + size / 2, size / 2, 0, Math.PI * 2);
+                    ctx.strokeStyle = '#e8e0d8';
+                    ctx.lineWidth = 3;
+                    ctx.stroke();
+                };
+            } catch(e) {
+                // 图片加载失败，显示 emoji
+                ctx.font = '60px sans-serif';
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'middle';
+                ctx.fillText('🍸', width / 2, 340);
+            }
+        } else {
+            ctx.font = '60px sans-serif';
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            ctx.fillText('🍸', width / 2, 340);
+        }
+
+        // 8. 绘制雷达图
+        if (radarCanvas) {
+            try {
+                const radarDataUrl = radarCanvas.toDataURL('image/png');
+                const radarImg = new Image();
+                radarImg.src = radarDataUrl;
+                radarImg.onload = function() {
+                    const radarSize = 200;
+                    const radarX = (width - radarSize) / 2;
+                    const radarY = 420;
+                    ctx.drawImage(radarImg, radarX, radarY, radarSize, radarSize);
+                };
+            } catch(e) {
+                console.log('雷达图绘制失败');
+            }
+        }
+
+        // 9. 摘要（最多4行）
+        ctx.fillStyle = '#2c241e';
+        ctx.font = '14px "PingFang SC", "Microsoft YaHei", sans-serif';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'top';
+        
+        const maxWidth = width - 80;
+        let lines = [];
+        let currentLine = '';
+        for (let char of summary) {
+            if (ctx.measureText(currentLine + char).width > maxWidth) {
+                lines.push(currentLine);
+                currentLine = char;
+            } else {
+                currentLine += char;
+            }
+        }
+        if (currentLine) lines.push(currentLine);
+        
+        const summaryStartY = 650;
+        lines.slice(0, 4).forEach((line, index) => {
+            ctx.fillText(line, width / 2, summaryStartY + index * 26);
+        });
+
+        // 10. 底部信息
+        const bottomY = height - 70;
+        ctx.fillStyle = '#b8a48c';
+        ctx.font = '12px "PingFang SC", "Microsoft YaHei", sans-serif';
+        ctx.textBaseline = 'bottom';
+        ctx.fillText('浓淡皆宜 · 每种配比都是一杯特调', width / 2, bottomY);
+        ctx.fillStyle = '#cbbca8';
+        ctx.font = '11px "PingFang SC", "Microsoft YaHei", sans-serif';
+        ctx.fillText('测试链接：test-backend-9iya.onrender.com', width / 2, bottomY - 22);
+
+        // 11. 等待图片加载完成后显示
         setTimeout(() => {
-            html2canvas(resultCard, {
-                scale: 1,                    // 降低到 1，手机端必须
-                useCORS: false,              // 关闭跨域，避免额外请求
-                allowTaint: true,
-                backgroundColor: '#ffffff',
-                logging: false,
-                width: resultCard.scrollWidth,
-                height: resultCard.scrollHeight,
-                windowWidth: resultCard.scrollWidth,
-                windowHeight: resultCard.scrollHeight,
-                // 忽略图片，用文字代替
-                onclone: function(clonedDoc) {
-                    // 把克隆文档中的图片替换成占位文字
-                    const images = clonedDoc.querySelectorAll('img');
-                    images.forEach(img => {
-                        const placeholder = clonedDoc.createElement('div');
-                        placeholder.style.cssText = 'width:80px;height:80px;background:#e8e0d8;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:32px;margin:0 auto;';
-                        placeholder.textContent = '🍸';
-                        img.parentNode.replaceChild(placeholder, img);
-                    });
-                }
-            }).then(canvas => {
-                // 恢复背景
-                resultCard.style.backgroundColor = '';
-                document.body.removeChild(loadingEl);
-                btn.textContent = originalText;
-                btn.disabled = false;
+            const imgData = canvas.toDataURL('image/png', 0.92);
+            
+            btn.textContent = originalText;
+            btn.disabled = false;
 
-                const imgData = canvas.toDataURL('image/png', 0.7);
-                
-                const overlay = document.createElement('div');
-                overlay.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.85);z-index:9999;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:20px;';
-                
-                const img = document.createElement('img');
-                img.src = imgData;
-                img.style.cssText = 'max-width:100%;max-height:70%;border-radius:16px;box-shadow:0 8px 32px rgba(0,0,0,0.3);';
-                
-                const tip = document.createElement('p');
-                tip.textContent = '📱 长按图片保存到相册';
-                tip.style.cssText = 'color:white;font-size:16px;margin-top:16px;';
-                
-                const closeBtn = document.createElement('button');
-                closeBtn.textContent = '✕ 关闭';
-                closeBtn.style.cssText = 'background:white;color:#333;border:none;padding:12px 32px;border-radius:60px;font-size:16px;margin-top:12px;cursor:pointer;';
-                closeBtn.onclick = () => document.body.removeChild(overlay);
-                
-                overlay.appendChild(img);
-                overlay.appendChild(tip);
-                overlay.appendChild(closeBtn);
-                document.body.appendChild(overlay);
-                
-            }).catch(err => {
-                resultCard.style.backgroundColor = '';
-                document.body.removeChild(loadingEl);
-                console.error('生成失败:', err);
-                btn.textContent = originalText;
-                btn.disabled = false;
-                alert('❌ 生成失败，请使用截图功能保存');
-            });
-        }, 300);
+            const overlay = document.createElement('div');
+            overlay.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.85);z-index:9999;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:20px;';
+            
+            const resultImg = document.createElement('img');
+            resultImg.src = imgData;
+            resultImg.style.cssText = 'max-width:100%;max-height:75%;border-radius:16px;box-shadow:0 8px 32px rgba(0,0,0,0.3);';
+            
+            const tip = document.createElement('p');
+            tip.textContent = '📱 长按图片保存到相册';
+            tip.style.cssText = 'color:white;font-size:15px;margin-top:16px;';
+            
+            const closeBtn = document.createElement('button');
+            closeBtn.textContent = '✕ 关闭';
+            closeBtn.style.cssText = 'background:white;color:#333;border:none;padding:12px 40px;border-radius:60px;font-size:16px;margin-top:12px;cursor:pointer;';
+            closeBtn.onclick = () => document.body.removeChild(overlay);
+            
+            overlay.appendChild(resultImg);
+            overlay.appendChild(tip);
+            overlay.appendChild(closeBtn);
+            document.body.appendChild(overlay);
+        }, 800);
+    }
+
+    // 辅助函数：绘制圆角矩形
+    function roundRect(ctx, x, y, w, h, r) {
+        if (r > w/2) r = w/2;
+        if (r > h/2) r = h/2;
+        ctx.moveTo(x + r, y);
+        ctx.lineTo(x + w - r, y);
+        ctx.quadraticCurveTo(x + w, y, x + w, y + r);
+        ctx.lineTo(x + w, y + h - r);
+        ctx.quadraticCurveTo(x + w, y + h, x + w - r, y + h);
+        ctx.lineTo(x + r, y + h);
+        ctx.quadraticCurveTo(x, y + h, x, y + h - r);
+        ctx.lineTo(x, y + r);
+        ctx.quadraticCurveTo(x, y, x + r, y);
+        return ctx;
     }
 </script>
 </body>
