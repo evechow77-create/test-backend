@@ -37,6 +37,10 @@ pool.query(`
         v_idx INTEGER,
         s_idx INTEGER,
         d_idx INTEGER,
+        type_25 TEXT,           -- 新增
+        category_name TEXT,     -- 新增
+        category_icon TEXT,     -- 新增
+        category_sub TEXT,      -- 新增
         device TEXT,
         screen_size TEXT,
         user_agent TEXT,
@@ -71,15 +75,26 @@ app.post('/api/save', async (req, res) => {
             INSERT INTO test_results (
                 timestamp, session_id, drink_name,
                 E, V, S, D, e_idx, v_idx, s_idx, d_idx,
+                type_25, category_name, category_icon, category_sub,
                 device, screen_size, user_agent, ip_address
-            ) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15)
+            ) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19)
             RETURNING id
         `, [
             data.timestamp || new Date().toISOString(),
             data.session_id || null,
             data.drink_name,
-            data.E || 0, data.V || 0, data.S || 0, data.D || 0,
-            data.e_idx || 0, data.v_idx || 0, data.s_idx || 0, data.d_idx || 0,
+            data.E || 0, 
+            data.V || 0, 
+            data.S || 0, 
+            data.D || 0,
+            data.e_idx || 0, 
+            data.v_idx || 0, 
+            data.s_idx || 0, 
+            data.d_idx || 0,
+            data.type_25 || '',        // 新增
+            data.category_name || '',  // 新增
+            data.category_icon || '',  // 新增
+            data.category_sub || '',   // 新增
             data.device || 'unknown',
             data.screen_size || 'unknown',
             userAgent || 'unknown',
@@ -139,6 +154,10 @@ app.get('/api/results', async (req, res) => {
                 r.V as "V",
                 r.S as "S",
                 r.D as "D",
+                r.type_25,
+                r.category_name,
+                r.category_icon,
+                r.category_sub,
                 r.device,
                 array_agg(a.answer_value ORDER BY a.question_index) as answers
             FROM test_results r
@@ -306,10 +325,11 @@ app.get('/admin', (req, res) => {
                 html += '</div>';
 
                 html += '<h3>📋 测试记录</h3><div style="overflow-x:auto;"><table>';
-                html += '<tr><th>ID</th><th>时间</th><th>饮品</th><th>E</th><th>V</th><th>S</th><th>D</th><th>每题分数</th><th>设备</th><th>操作</th></tr>';
+                html += '<tr><th>ID</th><th>时间</th><th>饮品</th><th>E</th><th>V</th><th>S</th><th>D</th><th>25类型</th><th>7大类</th><th>每题分数</th><th>设备</th></tr>';
                 if (results && results.length > 0) {
                     results.forEach(r => {
                         const answersStr = r.answers ? r.answers.join(', ') : '无';
+                        const categoryStr = (r.category_icon || '') + ' ' + (r.category_name || '') + (r.category_sub ? ' · ' + r.category_sub : '');
                         html += '<tr id="row-' + r.id + '">';
                         html += '<td>' + r.id + '</td>';
                         html += '<td>' + new Date(r.timestamp).toLocaleString() + '</td>';
@@ -318,6 +338,8 @@ app.get('/admin', (req, res) => {
                         html += '<td>' + (r.V ?? '-') + '</td>';
                         html += '<td>' + (r.S ?? '-') + '</td>';
                         html += '<td>' + (r.D ?? '-') + '</td>';
+                        html += '<td>' + (r.type_25 || '-') + '</td>';
+                        html += '<td>' + (categoryStr || '-') + '</td>';  
                         html += '<td class="answer-cell" title="' + answersStr + '">' + answersStr + '</td>';
                         html += '<td>' + (r.device || '-') + '</td>';
                         html += '<td><button class="delete-btn" onclick="deleteRow(' + r.id + ')">删除</button></td>';

@@ -6,7 +6,7 @@
     <title>浓淡性格测试 · 特调饮品版</title>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"></script>
-    <meta property="og:titconst qrY = height - 170;le" content="浓淡性格测试 · 特调饮品版" />
+    <meta property="og:titconst qrY = height - 180;le" content="浓淡性格测试 · 特调饮品版" />
     <meta property="og:description" content="16道题测出你的专属特调饮品，分享给你的朋友试试！" />
     <meta property="og:image" content="/images/00 浓淡封面.jpg" />
     <meta property="og:url" content="https://test-backend-9iya.onrender.com" />
@@ -292,42 +292,168 @@
         const drinkName = drinkFullMap[key] || "自定义特调";
         const drink = drinkDescriptions[drinkName];
         const drinkImage = drinkImages[drinkName] || "";
+        
+        // ===== 维度标签（每个维度自己的语言） =====
+        const eLabels = ['薄', '醇', '厚'];
+        const vLabels = ['柔', '韧', '烈'];
+        const sLabels = ['寡', '甘', '甜'];
+        const dLabels = ['冷', '温', '燃'];
 
-// ===== 提交数据到后端 =====
-const userData = {
-    timestamp: new Date().toISOString(),
-    session_id: localStorage.getItem('sessionId') || (() => {
-        const sid = 'session_' + Date.now() + '_' + Math.random().toString(36).slice(2, 8);
-        localStorage.setItem('sessionId', sid);
-        return sid;
-    })(),
-    drink_name: drinkName,
-    E: E,
-    V: V,
-    S: S,
-    D: D,
-    e_idx: eIdx,
-    v_idx: vIdx,
-    s_idx: sIdx,
-    d_idx: dIdx,
-    device: /Mobile|Android|iPhone/i.test(navigator.userAgent) ? 'mobile' : 'desktop',
-    screen_size: `${window.screen.width}x${window.screen.height}`,
-    answers: answers.slice()
-};
+        const eLabel = eLabels[eIdx];
+        const vLabel = vLabels[vIdx];
+        const sLabel = sLabels[sIdx];
+        const dLabel = dLabels[dIdx];
 
-fetch('/api/save', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(userData)
-})
-.then(res => res.json())
-.then(data => console.log('✅ 数据已保存:', data))
-.catch(err => console.warn('⚠️ 数据保存失败:', err));
+        // 存到全局，供 generateImage() 使用
+        window._eLabel = eLabel;
+        window._vLabel = vLabel;
+        window._sLabel = sLabel;
+        window._dLabel = dLabel;
+
+        // ===== 内部判定（情感 + 价值） =====
+        function getInnerLabel(e, v) {
+            // 两个都强 或 一强一匀 → 内浓
+            if ((e === 2 && v === 2) || (e === 2 && v === 1) || (e === 1 && v === 2)) {
+                return '内浓';
+            }
+            // 一强一弱 → 取强的那个
+            if (e === 2 && v === 0) return '内厚';      // 厚 = 情感强
+            if (e === 0 && v === 2) return '内烈';      // 烈 = 价值强
+            // 两个都匀
+            if (e === 1 && v === 1) return '内匀';
+            // 一弱一匀 → 取弱的那个
+            if (e === 0 && v === 1) return '内薄';
+            if (e === 1 && v === 0) return '内柔';
+            // 两个都弱
+            if (e === 0 && v === 0) return '内淡';
+            return '内匀';
+        }
+
+        // ===== 外部判定（社交 + 行动） =====
+        function getOuterLabel(s, d) {
+            // 两个都强 或 一强一匀 → 外浓
+            if ((s === 2 && d === 2) || (s === 2 && d === 1) || (s === 1 && d === 2)) {
+                return '外浓';
+            }
+            // 一强一弱 → 取强的那个
+            if (s === 2 && d === 0) return '外甜';      // 甜 = 社交强
+            if (s === 0 && d === 2) return '外燃';      // 燃 = 行动强
+            // 两个都匀
+            if (s === 1 && d === 1) return '外匀';
+            // 一弱一匀 → 取弱的那个
+            if (s === 0 && d === 1) return '外寡'
+            if (s === 1 && d === 0) return '外冷';
+            // 两个都弱
+            if (s === 0 && d === 0) return '外淡';
+            return '外匀';
+        }
+
+        const innerLabel = getInnerLabel(eIdx, vIdx);
+        const outerLabel = getOuterLabel(sIdx, dIdx);
+        const typeName = innerLabel + outerLabel;
+
+        // ===== 7 大类映射 =====
+        const categoryMap = {
+            // 全浓型（酒类）
+            '内浓外浓': { name: '全浓型', icon: '🍸', sub: '酒类' },
+            // 偏浓型（拿铁类）
+            '内浓外匀': { name: '偏浓型', icon: '☕', sub: '拿铁类' },
+            '内浓外淡': { name: '偏浓型', icon: '☕', sub: '拿铁类' },
+            '内浓外甜': { name: '偏浓型', icon: '☕', sub: '拿铁类' },
+            '内浓外燃': { name: '偏浓型', icon: '☕', sub: '拿铁类' },
+            '内浓外寡': { name: '偏浓型', icon: '☕', sub: '拿铁类' },
+            '内浓外冷': { name: '偏浓型', icon: '☕', sub: '拿铁类' },
+            // 外浓型（果饮类）
+            '内匀外浓': { name: '外浓型', icon: '🍊', sub: '果饮类' },
+            '内淡外浓': { name: '外浓型', icon: '🍊', sub: '果饮类' },
+            '内厚外浓': { name: '外浓型', icon: '🍊', sub: '果饮类' },
+            '内柔外浓': { name: '外浓型', icon: '🍊', sub: '果饮类' },
+            '内薄外浓': { name: '外浓型', icon: '🍊', sub: '果饮类' },
+            '内烈外浓': { name: '外浓型', icon: '🍊', sub: '果饮类' },
+            // 均衡型（奶类）
+            '内匀外匀': { name: '均衡型', icon: '🥛', sub: '奶类' },
+            // 偏淡型（茶类）
+            '内匀外淡': { name: '偏淡型', icon: '🍃', sub: '茶类' },
+            '内匀外甜': { name: '偏淡型', icon: '🍃', sub: '茶类' },
+            '内匀外燃': { name: '偏淡型', icon: '🍃', sub: '茶类' },
+            '内匀外寡': { name: '偏淡型', icon: '🍃', sub: '茶类' },
+            '内匀外冷': { name: '偏淡型', icon: '🍃', sub: '茶类' },
+            '内淡外匀': { name: '偏淡型', icon: '🍃', sub: '茶类' },
+            '内淡外淡': { name: '偏淡型', icon: '🍃', sub: '茶类' },
+            '内淡外甜': { name: '偏淡型', icon: '🍃', sub: '茶类' },
+            '内淡外燃': { name: '偏淡型', icon: '🍃', sub: '茶类' },
+            '内淡外寡': { name: '偏淡型', icon: '🍃', sub: '茶类' },
+            '内淡外冷': { name: '偏淡型', icon: '🍃', sub: '茶类' },
+            // 内浓型（养生茶）
+            '内厚外浓': { name: '内浓型', icon: '🌿', sub: '养生茶' },
+            '内厚外匀': { name: '内浓型', icon: '🌿', sub: '养生茶' },
+            '内厚外淡': { name: '内浓型', icon: '🌿', sub: '养生茶' },
+            '内厚外甜': { name: '内浓型', icon: '🌿', sub: '养生茶' },
+            '内厚外燃': { name: '内浓型', icon: '🌿', sub: '养生茶' },
+            '内厚外寡': { name: '内浓型', icon: '🌿', sub: '养生茶' },
+            '内厚外冷': { name: '内浓型', icon: '🌿', sub: '养生茶' },
+            '内烈外浓': { name: '内浓型', icon: '🌿', sub: '养生茶' },
+            '内烈外匀': { name: '内浓型', icon: '🌿', sub: '养生茶' },
+            '内烈外淡': { name: '内浓型', icon: '🌿', sub: '养生茶' },
+            '内烈外甜': { name: '内浓型', icon: '🌿', sub: '养生茶' },
+            '内烈外燃': { name: '内浓型', icon: '🌿', sub: '养生茶' },
+            '内烈外寡': { name: '内浓型', icon: '🌿', sub: '养生茶' },
+            '内烈外冷': { name: '内浓型', icon: '🌿', sub: '养生茶' },
+            // 全淡型（水类）
+            '内淡外淡': { name: '全淡型', icon: '💧', sub: '水类' },
+        };
+
+        const category = categoryMap[typeName] || { name: '均衡型', icon: '🥛', sub: '奶类' };
+
+        // ===== 提交数据到后端 =====
+        const userData = {
+            timestamp: new Date().toISOString(),
+            session_id: localStorage.getItem('sessionId') || (() => {
+                const sid = 'session_' + Date.now() + '_' + Math.random().toString(36).slice(2, 8);
+                localStorage.setItem('sessionId', sid);
+                return sid;
+            })(),
+            drink_name: drinkName,
+            E: E,
+            V: V,
+            S: S,
+            D: D,
+            e_idx: eIdx,
+            v_idx: vIdx,
+            s_idx: sIdx,
+            d_idx: dIdx,
+            // ===== 新增：25种类型和7大类 =====
+            type_25: typeName,                 // 如 "内浓外匀"
+            category_name: category.name,       // 如 "偏浓型"
+            category_icon: category.icon,       // 如 "☕"
+            category_sub: category.sub,         // 如 "拿铁类"
+            // ===== 新增结束 =====
+            device: /Mobile|Android|iPhone/i.test(navigator.userAgent) ? 'mobile' : 'desktop',
+            screen_size: `${window.screen.width}x${window.screen.height}`,
+            answers: answers.slice()
+        };
+
+        fetch('/api/save', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(userData)
+        })
+        .then(res => res.json())
+        .then(data => console.log('✅ 数据已保存:', data))
+        .catch(err => console.warn('⚠️ 数据保存失败:', err));
 
         appDiv.innerHTML = `
             <div class="result-card">
                 <div class="center">
                     <div class="type-box">E${eIdx===0?'-':(eIdx===1?'=':'+')} V${vIdx===0?'-':(vIdx===1?'=':'+')} S${sIdx===0?'-':(sIdx===1?'=':'+')} D${dIdx===0?'-':(dIdx===1?'=':'+')}</div>
+                         <div style="text-align:center;margin-top:6px;">
+                            <span style="background:#f0e8e0;padding:4px 16px;border-radius:40px;font-size:14px;color:#7f6243;">
+                                ${category.icon} ${category.name} · ${category.sub}
+                            </span>
+                            <span style="background:#e8e0d8;padding:4px 16px;border-radius:40px;font-size:13px;color:#5e4b3a;margin-left:8px;">
+                                ${typeName}
+                            </span>
+                        </div>
                 </div>
                 ${drinkImage ? `<img class="drink-image" src="${drinkImage}" alt="${drinkName}" loading="lazy">` : `<div class="drink-emoji" style="display:flex;align-items:center;justify-content:center;font-size:72px;width:100px;height:100px;margin:0 auto 16px;background:#f0e8e0;border-radius:50%;box-shadow:0 4px 12px rgba(0,0,0,0.08);">🍸</div>`}
                 <div class="drink-name">${drinkName}</div>
@@ -340,16 +466,16 @@ fetch('/api/save', {
                 </div>
                 
                 <div class="dimension-section">
-                    <div class="dimension-title">🧠 情感维度</div>
+                    <div class="dimension-title">🧠 情感醇度<span style="display:inline-block;background:#9b7b5c;color:white;border-radius:50%;width:32px;height:32px;text-align:center;line-height:32px;font-size:14px;font-weight:bold;margin-left:10px;">${eLabel}</span></div>
                     <div class="dimension-text">${drink.E}</div>
                     
-                    <div class="dimension-title">⚖️ 价值维度</div>
+                    <div class="dimension-title">⚖️ 价值烈度<span style="display:inline-block;background:#9b7b5c;color:white;border-radius:50%;width:32px;height:32px;text-align:center;line-height:32px;font-size:14px;font-weight:bold;margin-left:10px;">${vLabel}</span></div>
                     <div class="dimension-text">${drink.V}</div>
                     
-                    <div class="dimension-title">💬 社交维度</div>
+                    <div class="dimension-title">💬 社交甜度 <span style="display:inline-block;background:#9b7b5c;color:white;border-radius:50%;width:32px;height:32px;text-align:center;line-height:32px;font-size:14px;font-weight:bold;margin-left:10px;">${sLabel}</span></div>
                     <div class="dimension-text">${drink.S}</div>
                     
-                    <div class="dimension-title">🚀 行动维度</div>
+                    <div class="dimension-title">🚀 行动温度<span style="display:inline-block;background:#9b7b5c;color:white;border-radius:50%;width:32px;height:32px;text-align:center;line-height:32px;font-size:14px;font-weight:bold;margin-left:10px;">${dLabel}</span></div>
                     <div class="dimension-text">${drink.D}</div>
                     
                     <div class="dimension-title">💫 结语</div>
@@ -487,11 +613,14 @@ fetch('/api/save', {
 
         // 获取四个维度的文字
         const dimensions = [];
-        const dimTitles = ['🧠 情感维度', '⚖️ 价值维度', '💬 社交维度', '🚀 行动维度'];
+        const dimTitles = ['🧠 情感醇度', '⚖️ 价值烈度', '💬 社交甜度', '🚀 行动温度'];
+        // 从全局变量读取标签值
+         const dimLabels = [window._eLabel || '醇', window._vLabel || '韧', window._sLabel || '甘', window._dLabel || '温'];
         if (dimensionTexts.length >= 4) {
             for (let i = 0; i < 4; i++) {
                 dimensions.push({
                     title: dimTitles[i] || '',
+                    label: dimLabels[i] || '',
                     text: dimensionTexts[i] ? dimensionTexts[i].textContent : ''
                 });
             }
@@ -523,7 +652,7 @@ fetch('/api/save', {
             const canvas = document.createElement('canvas');
             const ctx = canvas.getContext('2d');
             const width = 600;
-            const height = 1280; // 增加高度容纳更多内容
+            const height = 1350; // 增加高度容纳更多内容
             canvas.width = width * 2;
             canvas.height = height * 2;
             ctx.scale(2, 2);
@@ -688,7 +817,7 @@ fetch('/api/save', {
                     const radarDataUrl = radarCanvas.toDataURL('image/png');
                     const radarImg = new Image();
                     radarImg.src = radarDataUrl;
-                    const radarSize = 180;
+                    const radarSize = 200;
                     const radarX = (width - radarSize) / 2;
                     const radarY = currentY;
                     currentY += radarSize + 30;
@@ -727,12 +856,36 @@ fetch('/api/save', {
                 ctx.font = 'bold 16px "PingFang SC", "Microsoft YaHei", sans-serif';
                 ctx.textAlign = 'left';
                 ctx.textBaseline = 'top';
+
+                // 先绘制标题文字
                 ctx.fillText(dim.title, 70, y);
+
+                // 再绘制气泡背景（圆角矩形或圆形）
+                const labelX = 70 + 130;  // 标题文字宽度 + 8px 间距
+                const labelY = y + 2;
+                const labelW = 28;
+                const labelH = 28;
+                const radius = 14;
+
+                ctx.beginPath();
+                ctx.arc(labelX + labelW/2, labelY + labelH/2, radius, 0, Math.PI * 2);
+                ctx.fillStyle = '#9b7b5c';
+                ctx.fill();
+
+                // 3. 气泡内文字
+                ctx.fillStyle = '#ffffff';
+                ctx.font = 'bold 12px "PingFang SC", "Microsoft YaHei", sans-serif';
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'middle';
+                ctx.fillText(dim.label, labelX + labelW/2, labelY + labelH/2);
                 
+                // 4. 绘制正文（从 70 + 40 开始，避开气泡）
                 ctx.fillStyle = '#2c241e';
                 ctx.font = '14px "PingFang SC", "Microsoft YaHei", sans-serif';
+                ctx.textAlign = 'left';
+                ctx.textBaseline = 'top';
                 const text = dim.text || '';
-                const maxWidth2 = width - 140;
+                const maxWidth2 = width - 140 - 40;  // 减去气泡占用的宽度
                 let lines2 = [];
                 let currentLine2 = '';
                 for (let char of text) {
@@ -746,7 +899,7 @@ fetch('/api/save', {
                 if (currentLine2) lines2.push(currentLine2);
                 
                 lines2.slice(0, 2).forEach((line, idx) => {
-                    ctx.fillText(line, 70, y + 24 + idx * 22);
+                    ctx.fillText(line, 70 + 40, y + 24 + idx * 22);
                 });
             });
 
@@ -771,15 +924,15 @@ fetch('/api/save', {
             }
             if (currentLine3) lines3.push(currentLine3);
             
-            lines3.slice(0, 4).forEach((line, index) => {
+            lines3.slice(0, 6).forEach((line, index) => {
                 ctx.fillText(line, width / 2, currentY + index * 26);
             });
-            currentY += Math.min(lines3.length, 4) * 26 + 30;
+            currentY += Math.min(lines3.length, 6) * 26 + 30;
 
             // ---- 11. 二维码和底部信息 ----
             const qrSize = 100;
             const qrX = 75;
-            const qrY = height - 170;
+            const qrY = height - 180;
 
             // 绘制二维码
             try {
