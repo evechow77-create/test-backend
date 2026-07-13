@@ -523,7 +523,7 @@ fetch('/api/save', {
             const canvas = document.createElement('canvas');
             const ctx = canvas.getContext('2d');
             const width = 600;
-            const height = 1200; // 增加高度容纳更多内容
+            const height = 1280; // 增加高度容纳更多内容
             canvas.width = width * 2;
             canvas.height = height * 2;
             ctx.scale(2, 2);
@@ -595,7 +595,7 @@ fetch('/api/save', {
             ctx.shadowBlur = 0;
             ctx.shadowOffsetY = 0;
 
-            let currentY = 50;
+            let currentY = 80;
 
             // ---- 3. 标题 ----
             ctx.fillStyle = '#3b2e24';
@@ -721,13 +721,13 @@ fetch('/api/save', {
             ctx.textBaseline = 'top';
 
             dimensions.forEach((dim, index) => {
-                const y = dimStartY + index * 85;
+                const y = dimStartY + index * 80;
                 
                 ctx.fillStyle = '#5e4b3a';
                 ctx.font = 'bold 16px "PingFang SC", "Microsoft YaHei", sans-serif';
                 ctx.textAlign = 'left';
                 ctx.textBaseline = 'top';
-                ctx.fillText(dim.title, 50, y);
+                ctx.fillText(dim.title, 70, y);
                 
                 ctx.fillStyle = '#2c241e';
                 ctx.font = '14px "PingFang SC", "Microsoft YaHei", sans-serif';
@@ -746,11 +746,11 @@ fetch('/api/save', {
                 if (currentLine2) lines2.push(currentLine2);
                 
                 lines2.slice(0, 2).forEach((line, idx) => {
-                    ctx.fillText(line, 50, y + 24 + idx * 22);
+                    ctx.fillText(line, 70, y + 24 + idx * 22);
                 });
             });
 
-            currentY = dimStartY + 4 * 85 + 20;
+            currentY = dimStartY + 4 * 80 + 20;
 
             // ---- 10. 总评摘要（加大字号） ----
             ctx.fillStyle = '#2c241e';
@@ -771,15 +771,15 @@ fetch('/api/save', {
             }
             if (currentLine3) lines3.push(currentLine3);
             
-            lines3.slice(0, 3).forEach((line, index) => {
+            lines3.slice(0, 4).forEach((line, index) => {
                 ctx.fillText(line, width / 2, currentY + index * 26);
             });
-            currentY += Math.min(lines3.length, 3) * 26 + 30;
+            currentY += Math.min(lines3.length, 4) * 26 + 30;
 
             // ---- 11. 二维码和底部信息 ----
             const qrSize = 100;
-            const qrX = 55;
-            const qrY = height - 130;
+            const qrX = 75;
+            const qrY = height - 140;
 
             // 绘制二维码
             try {
@@ -817,10 +817,10 @@ fetch('/api/save', {
             ctx.font = '13px "PingFang SC", "Microsoft YaHei", sans-serif';
             ctx.textAlign = 'right';
             ctx.textBaseline = 'bottom';
-            ctx.fillText('浓淡皆宜 · 每种配比都是一杯特调', width - 50, height - 45);
+            ctx.fillText('浓淡皆宜 · 每种配比都是一杯特调', width - 70, height - 45);
             ctx.fillStyle = '#cbbca8';
             ctx.font = '11px "PingFang SC", "Microsoft YaHei", sans-serif';
-            ctx.fillText('test-backend-9iya.onrender.com', width - 50, height - 65);
+            ctx.fillText('test-backend-9iya.onrender.com', width - 70, height - 65);
         }, 500);
     }
 </script>
