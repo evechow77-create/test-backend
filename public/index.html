@@ -653,8 +653,8 @@
             qrContainer.innerHTML = '<div style="font-size:16px;color:#999;">QR</div>';
         }
 
-        // 等待二维码生成
-        setTimeout(() => {
+    // 等待二维码生成
+    setTimeout(() => {
 
         // 创建 Canvas
         const canvas = document.createElement('canvas');
@@ -721,346 +721,344 @@
         canvas.height = height * 2;
         ctx.scale(2, 2);
 
-            // ===== ✅ 在这里定义加载计数器 =====
-            let loadedCount = 0;
-            const totalImages = 2;
+        // ===== ✅ 在这里定义加载计数器 =====
+        let loadedCount = 0;
+        const totalImages = 2;
 
-            function checkAndShow() {
-                if (loadedCount >= totalImages) {
-                    showResult();
-                }
+        function checkAndShow() {
+            if (loadedCount >= totalImages) {
+                showResult();
+            }
+        }
+
+        let resultShown = false;
+
+        function showResult() {
+            if (resultShown) return;
+            resultShown = true;
+
+            // 删除临时二维码容器
+            if (qrContainer && qrContainer.parentNode) {
+                document.body.removeChild(qrContainer);
             }
 
-            let resultShown = false;
+            const imgData = canvas.toDataURL('image/png', 0.92);
+            btn.textContent = originalText;
+            btn.disabled = false;
 
-            function showResult() {
-                if (resultShown) return;
-                resultShown = true;
+            const overlay = document.createElement('div');
+            overlay.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.85);z-index:9999;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:20px;';
+            
+            const resultImg = document.createElement('img');
+            resultImg.src = imgData;
+            resultImg.style.cssText = 'max-width:100%;max-height:75%;border-radius:16px;box-shadow:0 8px 32px rgba(0,0,0,0.3);';
+            
+            const tip = document.createElement('p');
+            tip.textContent = '📱 长按图片保存到相册';
+            tip.style.cssText = 'color:white;font-size:15px;margin-top:16px;';
+            
+            const closeBtn = document.createElement('button');
+            closeBtn.textContent = '✕ 关闭';
+            closeBtn.style.cssText = 'background:white;color:#333;border:none;padding:12px 40px;border-radius:60px;font-size:16px;margin-top:12px;cursor:pointer;';
+            closeBtn.onclick = function() { document.body.removeChild(overlay); };
+            
+            overlay.appendChild(resultImg);
+            overlay.appendChild(tip);
+            overlay.appendChild(closeBtn);
+            document.body.appendChild(overlay);
+        }
 
-                // 删除临时二维码容器
-                if (qrContainer && qrContainer.parentNode) {
-                    document.body.removeChild(qrContainer);
-                }
+        // ---- 1. 背景 ----
+        const gradient = ctx.createLinearGradient(0, 0, 0, height);
+        gradient.addColorStop(0, '#f5f0eb');
+        gradient.addColorStop(1, '#e8e0d8');
+        ctx.fillStyle = gradient;
+        ctx.fillRect(0, 0, width, height);
 
-                const imgData = canvas.toDataURL('image/png', 0.92);
-                btn.textContent = originalText;
-                btn.disabled = false;
+        // ---- 2. 白色卡片（加大边距） ----
+        ctx.shadowColor = 'rgba(0,0,0,0.08)';
+        ctx.shadowBlur = 20;
+        ctx.shadowOffsetY = 8;
+        ctx.fillStyle = '#ffffff';
+        ctx.beginPath();
+        drawRoundRect(ctx, pad, pad, width - pad * 2, height - pad * 2, 28);
+        ctx.fill();
+        ctx.shadowColor = 'transparent';
+        ctx.shadowBlur = 0;
+        ctx.shadowOffsetY = 0;
 
-                const overlay = document.createElement('div');
-                overlay.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.85);z-index:9999;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:20px;';
-                
-                const resultImg = document.createElement('img');
-                resultImg.src = imgData;
-                resultImg.style.cssText = 'max-width:100%;max-height:75%;border-radius:16px;box-shadow:0 8px 32px rgba(0,0,0,0.3);';
-                
-                const tip = document.createElement('p');
-                tip.textContent = '📱 长按图片保存到相册';
-                tip.style.cssText = 'color:white;font-size:15px;margin-top:16px;';
-                
-                const closeBtn = document.createElement('button');
-                closeBtn.textContent = '✕ 关闭';
-                closeBtn.style.cssText = 'background:white;color:#333;border:none;padding:12px 40px;border-radius:60px;font-size:16px;margin-top:12px;cursor:pointer;';
-                closeBtn.onclick = function() { document.body.removeChild(overlay); };
-                
-                overlay.appendChild(resultImg);
-                overlay.appendChild(tip);
-                overlay.appendChild(closeBtn);
-                document.body.appendChild(overlay);
-            }
+        let currentY = 80;
 
-            // ---- 1. 背景 ----
-            const gradient = ctx.createLinearGradient(0, 0, 0, height);
-            gradient.addColorStop(0, '#f5f0eb');
-            gradient.addColorStop(1, '#e8e0d8');
-            ctx.fillStyle = gradient;
-            ctx.fillRect(0, 0, width, height);
+        // ---- 3. 标题 ----
+        ctx.fillStyle = '#3b2e24';
+        ctx.font = 'bold 28px "PingFang SC", "Microsoft YaHei", sans-serif';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'top';
+        ctx.fillText('🍹 浓淡性格测试', width / 2, currentY);
+        currentY += 50;
 
-            // ---- 2. 白色卡片（加大边距） ----
-            const pad = 50;
-            ctx.shadowColor = 'rgba(0,0,0,0.08)';
-            ctx.shadowBlur = 20;
-            ctx.shadowOffsetY = 8;
-            ctx.fillStyle = '#ffffff';
-            ctx.beginPath();
-            drawRoundRect(ctx, pad, pad, width - pad * 2, height - pad * 2, 28);
-            ctx.fill();
-            ctx.shadowColor = 'transparent';
-            ctx.shadowBlur = 0;
-            ctx.shadowOffsetY = 0;
+        // ---- 4. 饮品名称（加大） ----
+        ctx.fillStyle = '#b87c4f';
+        ctx.font = 'bold 40px "PingFang SC", "Microsoft YaHei", sans-serif';
+        ctx.textBaseline = 'top';
+        ctx.fillText(drinkName, width / 2, currentY);
+        currentY += 55;
 
-            let currentY = 80;
+        // ---- 5. 诗句（加大） ----
+        ctx.fillStyle = '#8b7a6b';
+        ctx.font = '18px "PingFang SC", "Microsoft YaHei", sans-serif';
+        ctx.textBaseline = 'top';
+        ctx.fillText('「' + poem + '」', width / 2, currentY);
+        currentY += 40;
 
-            // ---- 3. 标题 ----
-            ctx.fillStyle = '#3b2e24';
-            ctx.font = 'bold 28px "PingFang SC", "Microsoft YaHei", sans-serif';
-            ctx.textAlign = 'center';
-            ctx.textBaseline = 'top';
-            ctx.fillText('🍹 浓淡性格测试', width / 2, currentY);
-            currentY += 50;
+        // ---- 6. 类型标签 ----
+        ctx.fillStyle = '#f3ede7';
+        ctx.beginPath();
+        drawRoundRect(ctx, width / 2 - 65, currentY, 130, 36, 18);
+        ctx.fill();
+        ctx.fillStyle = '#7f6243';
+        ctx.font = '15px monospace';
+        ctx.textBaseline = 'middle';
+        ctx.fillText(typeText, width / 2, currentY + 18);
+        currentY += 46;
 
-            // ---- 4. 饮品名称（加大） ----
-            ctx.fillStyle = '#b87c4f';
-            ctx.font = 'bold 40px "PingFang SC", "Microsoft YaHei", sans-serif';
-            ctx.textBaseline = 'top';
-            ctx.fillText(drinkName, width / 2, currentY);
-            currentY += 55;
+        // 合并 7大类 + 25类型 为一行
+        const label1 = categoryStr;  // 如 "🍸 全浓型 · 酒类"
+        const label2 = typeName;     // 如 "内浓外浓"
+        const label1Width = 160;     // 稍微加宽一点，容纳更多文字
+        const label2Width = 110;
+        const gap = 12;
+        const totalWidth = label1Width + gap + label2Width;
+        const startX = (width - totalWidth) / 2;
+        const labelHeight = 32;
 
-            // ---- 5. 诗句（加大） ----
-            ctx.fillStyle = '#8b7a6b';
-            ctx.font = '18px "PingFang SC", "Microsoft YaHei", sans-serif';
-            ctx.textBaseline = 'top';
-            ctx.fillText('「' + poem + '」', width / 2, currentY);
-            currentY += 40;
+        // 7大类标签（淡蓝色）
+        ctx.fillStyle = '#dbeafe';
+        ctx.beginPath();
+        drawRoundRect(ctx, startX, currentY, label1Width, labelHeight, 16);
+        ctx.fill();
+        ctx.fillStyle = '#1e40af';
+        ctx.font = '13px "PingFang SC", "Microsoft YaHei", sans-serif';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText(label1, startX + label1Width / 2, currentY + labelHeight / 2);
 
-            // ---- 6. 类型标签 ----
-            ctx.fillStyle = '#f3ede7';
-            ctx.beginPath();
-            drawRoundRect(ctx, width / 2 - 65, currentY, 130, 36, 18);
-            ctx.fill();
-            ctx.fillStyle = '#7f6243';
-            ctx.font = '15px monospace';
-            ctx.textBaseline = 'middle';
-            ctx.fillText(typeText, width / 2, currentY + 18);
-            currentY += 46;
+        // 25类型标签（淡绿色）
+        ctx.fillStyle = '#d1fae5';
+        ctx.beginPath();
+        drawRoundRect(ctx, startX + label1Width + gap, currentY, label2Width, labelHeight, 16);
+        ctx.fill();
+        ctx.fillStyle = '#065f46';
+        ctx.font = '12px "PingFang SC", "Microsoft YaHei", sans-serif';
+        ctx.fillText(label2, startX + label1Width + gap + label2Width / 2, currentY + labelHeight / 2);
 
-            // 合并 7大类 + 25类型 为一行
-            const label1 = categoryStr;  // 如 "🍸 全浓型 · 酒类"
-            const label2 = typeName;     // 如 "内浓外浓"
-            const label1Width = 160;     // 稍微加宽一点，容纳更多文字
-            const label2Width = 110;
-            const gap = 12;
-            const totalWidth = label1Width + gap + label2Width;
-            const startX = (width - totalWidth) / 2;
-            const labelHeight = 32;
+        currentY += labelHeight + 18;  // 标签高度 + 下方间距
 
-            // 7大类标签（淡蓝色）
-            ctx.fillStyle = '#dbeafe';
-            ctx.beginPath();
-            drawRoundRect(ctx, startX, currentY, label1Width, labelHeight, 16);
-            ctx.fill();
-            ctx.fillStyle = '#1e40af';
-            ctx.font = '13px "PingFang SC", "Microsoft YaHei", sans-serif';
-            ctx.textAlign = 'center';
-            ctx.textBaseline = 'middle';
-            ctx.fillText(label1, startX + label1Width / 2, currentY + labelHeight / 2);
+        // ---- 7. 饮品图片（加大） ----
+        const imgSize = 120;
+        const imgX = (width - imgSize) / 2;
+        const imgY = currentY;
+        currentY += imgSize + 25;
 
-            // 25类型标签（淡绿色）
-            ctx.fillStyle = '#d1fae5';
-            ctx.beginPath();
-            drawRoundRect(ctx, startX + label1Width + gap, currentY, label2Width, labelHeight, 16);
-            ctx.fill();
-            ctx.fillStyle = '#065f46';
-            ctx.font = '12px "PingFang SC", "Microsoft YaHei", sans-serif';
-            ctx.fillText(label2, startX + label1Width + gap + label2Width / 2, currentY + labelHeight / 2);
+        ctx.beginPath();
+        ctx.arc(width / 2, imgY + imgSize / 2, imgSize / 2, 0, Math.PI * 2);
+        ctx.fillStyle = '#f0e8e0';
+        ctx.fill();
 
-            currentY += labelHeight + 18;  // 标签高度 + 下方间距
-
-            // ---- 7. 饮品图片（加大） ----
-            const imgSize = 120;
-            const imgX = (width - imgSize) / 2;
-            const imgY = currentY;
-            currentY += imgSize + 25;
-
-            ctx.beginPath();
-            ctx.arc(width / 2, imgY + imgSize / 2, imgSize / 2, 0, Math.PI * 2);
-            ctx.fillStyle = '#f0e8e0';
-            ctx.fill();
-
-            if (imgEl && imgEl.src) {
-                try {
-                    const img = new Image();
-                    img.crossOrigin = 'anonymous';
-                    img.src = imgEl.src;
-                    img.onload = function() {
-                        ctx.save();
-                        ctx.beginPath();
-                        ctx.arc(width / 2, imgY + imgSize / 2, imgSize / 2, 0, Math.PI * 2);
-                        ctx.clip();
-                        ctx.drawImage(img, imgX, imgY, imgSize, imgSize);
-                        ctx.restore();
-                        ctx.beginPath();
-                        ctx.arc(width / 2, imgY + imgSize / 2, imgSize / 2, 0, Math.PI * 2);
-                        ctx.strokeStyle = '#e8e0d8';
-                        ctx.lineWidth = 3;
-                        ctx.stroke();
-                        loadedCount++;
-                        checkAndShow();
-                    };
-                    img.onerror = function() {
-                        ctx.font = '60px sans-serif';
-                        ctx.textAlign = 'center';
-                        ctx.textBaseline = 'middle';
-                        ctx.fillText('🍸', width / 2, imgY + imgSize / 2);
-                        loadedCount++;
-                        checkAndShow();
-                    };
-                } catch(e) {
+        if (imgEl && imgEl.src) {
+            try {
+                const img = new Image();
+                img.crossOrigin = 'anonymous';
+                img.src = imgEl.src;
+                img.onload = function() {
+                    ctx.save();
+                    ctx.beginPath();
+                    ctx.arc(width / 2, imgY + imgSize / 2, imgSize / 2, 0, Math.PI * 2);
+                    ctx.clip();
+                    ctx.drawImage(img, imgX, imgY, imgSize, imgSize);
+                    ctx.restore();
+                    ctx.beginPath();
+                    ctx.arc(width / 2, imgY + imgSize / 2, imgSize / 2, 0, Math.PI * 2);
+                    ctx.strokeStyle = '#e8e0d8';
+                    ctx.lineWidth = 3;
+                    ctx.stroke();
+                    loadedCount++;
+                    checkAndShow();
+                };
+                img.onerror = function() {
                     ctx.font = '60px sans-serif';
                     ctx.textAlign = 'center';
                     ctx.textBaseline = 'middle';
                     ctx.fillText('🍸', width / 2, imgY + imgSize / 2);
-                }
-            } else {
+                    loadedCount++;
+                    checkAndShow();
+                };
+            } catch(e) {
                 ctx.font = '60px sans-serif';
                 ctx.textAlign = 'center';
                 ctx.textBaseline = 'middle';
                 ctx.fillText('🍸', width / 2, imgY + imgSize / 2);
+                loadedCount++;
+                checkAndShow();
             }
+        } else {
+            ctx.font = '60px sans-serif';
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            ctx.fillText('🍸', width / 2, imgY + imgSize / 2);
+            loadedCount++;
+            checkAndShow();
+        }
 
-            // ---- 8. 雷达图（加大） ----
-            if (radarCanvas) {
-                try {
-                    const radarDataUrl = radarCanvas.toDataURL('image/png');
-                    const radarImg = new Image();
-                    radarImg.src = radarDataUrl;
-                    const radarSize = 200;
-                    const radarX = (width - radarSize) / 2;
-                    const radarY = currentY;
-                    currentY += radarSize + 30;
-                    radarImg.onload = function() {
-                        ctx.drawImage(radarImg, radarX, radarY, radarSize, radarSize);
-                        loadedCount++;
-                        checkAndShow();
-                    };
-                    radarImg.onerror = function() {
-                        ctx.fillStyle = '#f0e8e0';
-                        ctx.fillRect(radarX, radarY, radarSize, radarSize);
-                        ctx.fillStyle = '#b8a48c';
-                        ctx.font = '20px sans-serif';
-                        ctx.textAlign = 'center';
-                        ctx.textBaseline = 'middle';
-                        ctx.fillText('📊', radarX + radarSize/2, radarY + radarSize/2);
-                        loadedCount++;
-                        checkAndShow();
-                    };
-                } catch(e) {
-                    currentY += 30;
-                }
-            } else {
+        // ---- 8. 雷达图（加大） ----
+        if (radarCanvas) {
+            try {
+                const radarDataUrl = radarCanvas.toDataURL('image/png');
+                const radarImg = new Image();
+                radarImg.src = radarDataUrl;
+                const radarSize = 200;
+                const radarX = (width - radarSize) / 2;
+                const radarY = currentY;
+                currentY += radarSize + 30;
+                radarImg.onload = function() {
+                    ctx.drawImage(radarImg, radarX, radarY, radarSize, radarSize);
+                    loadedCount++;
+                    checkAndShow();
+                };
+                radarImg.onerror = function() {
+                    ctx.fillStyle = '#f0e8e0';
+                    ctx.fillRect(radarX, radarY, radarSize, radarSize);
+                    ctx.fillStyle = '#b8a48c';
+                    ctx.font = '20px sans-serif';
+                    ctx.textAlign = 'center';
+                    ctx.textBaseline = 'middle';
+                    ctx.fillText('📊', radarX + radarSize/2, radarY + radarSize/2);
+                    loadedCount++;
+                    checkAndShow();
+                };
+            } catch(e) {
                 currentY += 30;
+                loadedCount++;
+                checkAndShow();
             }
+        } else {
+            currentY += 30;
+            loadedCount++;
+            checkAndShow();
+        }
 
-            // ---- 9. 四个维度详情（加大字号） ----
-            const dimStartY = currentY;
+        // ---- 9. 四个维度详情（加大字号） ----
+        const dimStartY = currentY;
+        ctx.textAlign = 'left';
+        ctx.textBaseline = 'top';
+
+        // 辅助函数：文本自动换行
+        function wrapTextToLines(ctx, text, maxWidth, maxLines) {
+            const lines = [];
+            let currentLine = '';
+            for (let char of text) {
+                const testLine = currentLine + char;
+                if (ctx.measureText(testLine).width > maxWidth) {
+                    if (lines.length >= maxLines - 1) {
+                        // 到达最大行数，截断并加省略号
+                        if (currentLine.length > 0) {
+                            lines.push(currentLine + '…');
+                        }
+                        return lines;
+                    }
+                    lines.push(currentLine);
+                    currentLine = char;
+                } else {
+                    currentLine += char;
+                }
+            }
+            if (currentLine && lines.length < maxLines) {
+                lines.push(currentLine);
+            }
+            return lines;
+        }
+
+        dimensions.forEach((dim, index) => {
+            const y = dimStartY + index * 90;
+            
+            // 1. 标题
+            ctx.fillStyle = '#5e4b3a';
+            ctx.font = 'bold 16px "PingFang SC", "Microsoft YaHei", sans-serif';
+            ctx.textAlign = 'left';
+            ctx.textBaseline = 'top';
+            ctx.fillText(dim.title, 70, y);
+
+            // 2. 气泡标签
+            const labelX = 70 + 100;  // 标题文字宽度 + 8px 间距
+            const labelY = y;
+            const labelW = 28;
+            const labelH = 28;
+            const radius = 14;
+
+            ctx.beginPath();
+            ctx.arc(labelX + labelW/2, labelY + labelH/2, radius, 0, Math.PI * 2);
+            ctx.fillStyle = '#9b7b5c';
+            ctx.fill();
+
+            // 3. 气泡内文字
+            ctx.fillStyle = '#ffffff';
+            ctx.font = 'bold 12px "PingFang SC", "Microsoft YaHei", sans-serif';
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            ctx.fillText(dim.label, labelX + labelW/2, labelY + labelH/2);
+            
+            // 3. 描述正文（自动换行，最多3行）
+            ctx.fillStyle = '#2c241e';
+            ctx.font = '14px "PingFang SC", "Microsoft YaHei", sans-serif';
             ctx.textAlign = 'left';
             ctx.textBaseline = 'top';
 
-            // 辅助函数：文本自动换行
-            function wrapTextToLines(ctx, text, maxWidth, maxLines) {
-                const lines = [];
-                let currentLine = '';
-                for (let char of text) {
-                    const testLine = currentLine + char;
-                    if (ctx.measureText(testLine).width > maxWidth) {
-                        if (lines.length >= maxLines - 1) {
-                            // 到达最大行数，截断并加省略号
-                            if (currentLine.length > 0) {
-                                lines.push(currentLine + '…');
-                            }
-                            return lines;
-                        }
-                        lines.push(currentLine);
-                        currentLine = char;
-                    } else {
-                        currentLine += char;
-                    }
-                }
-                if (currentLine && lines.length < maxLines) {
-                    lines.push(currentLine);
-                }
-                return lines;
-            }
-
-            dimensions.forEach((dim, index) => {
-                const y = dimStartY + index * 90;
-                
-                // 1. 标题
-                ctx.fillStyle = '#5e4b3a';
-                ctx.font = 'bold 16px "PingFang SC", "Microsoft YaHei", sans-serif';
-                ctx.textAlign = 'left';
-                ctx.textBaseline = 'top';
-                ctx.fillText(dim.title, 70, y);
-
-                // 2. 气泡标签
-                const labelX = 70 + 100;  // 标题文字宽度 + 8px 间距
-                const labelY = y;
-                const labelW = 28;
-                const labelH = 28;
-                const radius = 14;
-
-                ctx.beginPath();
-                ctx.arc(labelX + labelW/2, labelY + labelH/2, radius, 0, Math.PI * 2);
-                ctx.fillStyle = '#9b7b5c';
-                ctx.fill();
-
-                // 3. 气泡内文字
-                ctx.fillStyle = '#ffffff';
-                ctx.font = 'bold 12px "PingFang SC", "Microsoft YaHei", sans-serif';
-                ctx.textAlign = 'center';
-                ctx.textBaseline = 'middle';
-                ctx.fillText(dim.label, labelX + labelW/2, labelY + labelH/2);
-                
-                // 3. 描述正文（自动换行，最多3行）
-                ctx.fillStyle = '#2c241e';
-                ctx.font = '14px "PingFang SC", "Microsoft YaHei", sans-serif';
-                ctx.textAlign = 'left';
-                ctx.textBaseline = 'top';
-
-                const text = dim.text || '';
-                const maxWidth2 = width - 140 - 30;  // 减去气泡占用的宽度
-                const lines2 = wrapTextToLines(ctx, text, maxWidth2, 3);
-                
-                lines2.forEach((line, idx) => {
-                    ctx.fillText(line, 70 + 40, y + 24 + idx * 22);
-                });
-            });
-
-            currentY = dimStartY + 4 * 80 + 20;
-
-            // ---- 10. 总评摘要（加大字号） ----
-            ctx.fillStyle = '#2c241e';
-            ctx.font = '15px "PingFang SC", "Microsoft YaHei", sans-serif';
-            ctx.textAlign = 'center';
-            ctx.textBaseline = 'top';
+            const text = dim.text || '';
+            const maxWidth2 = width - 140 - 30;  // 减去气泡占用的宽度
+            const lines2 = wrapTextToLines(ctx, text, maxWidth2, 3);
             
-            const maxWidth3 = width - 140;
-            let lines3 = [];
-            let currentLine3 = '';
-            for (let char of summary) {
-                if (ctx.measureText(currentLine3 + char).width > maxWidth3) {
-                    lines3.push(currentLine3);
-                    currentLine3 = char;
-                } else {
-                    currentLine3 += char;
-                }
-            }
-            if (currentLine3) lines3.push(currentLine3);
-            
-            lines3.slice(0, 6).forEach((line, index) => {
-                ctx.fillText(line, width / 2, currentY + index * 26);
+            lines2.forEach((line, idx) => {
+                ctx.fillText(line, 70 + 40, y + 24 + idx * 22);
             });
-            currentY += Math.min(lines3.length, 6) * 26 + 30;
+        });
 
-            // ---- 11. 二维码和底部信息 ----
-            const qrSize = 100;
-            const qrX = 75;
-            const qrY = height - 180;
+        currentY = dimStartY + 4 * 80 + 20;
 
-            // 绘制二维码
-            try {
-                const qrImg = qrContainer.querySelector('canvas') || qrContainer.querySelector('img');
-                if (qrImg) {
-                    ctx.drawImage(qrImg, qrX, qrY, qrSize, qrSize);
-                } else {
-                    ctx.fillStyle = '#f0e8e0';
-                    ctx.fillRect(qrX, qrY, qrSize, qrSize);
-                    ctx.fillStyle = '#b8a48c';
-                    ctx.font = '18px sans-serif';
-                    ctx.textAlign = 'center';
-                    ctx.textBaseline = 'middle';
-                    ctx.fillText('QR', qrX + qrSize/2, qrY + qrSize/2);
-                }
-            } catch(e) {
+        // ---- 10. 总评摘要（加大字号） ----
+        ctx.fillStyle = '#2c241e';
+        ctx.font = '15px "PingFang SC", "Microsoft YaHei", sans-serif';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'top';
+        
+        const maxWidth3 = width - 140;
+        let lines3 = [];
+        let currentLine3 = '';
+        for (let char of summary) {
+            if (ctx.measureText(currentLine3 + char).width > maxWidth3) {
+                lines3.push(currentLine3);
+                currentLine3 = char;
+            } else {
+                currentLine3 += char;
+            }
+        }
+        if (currentLine3) lines3.push(currentLine3);
+        
+        lines3.slice(0, 6).forEach((line, index) => {
+            ctx.fillText(line, width / 2, currentY + index * 26);
+        });
+        currentY += Math.min(lines3.length, 6) * 26 + 30;
+
+        // ---- 11. 二维码和底部信息 ----
+        const qrSize = 100;
+        const qrX = 75;
+        const qrY = height - 180;
+
+        // 绘制二维码
+        try {
+            const qrImg = qrContainer.querySelector('canvas') || qrContainer.querySelector('img');
+            if (qrImg) {
+                ctx.drawImage(qrImg, qrX, qrY, qrSize, qrSize);
+            } else {
                 ctx.fillStyle = '#f0e8e0';
                 ctx.fillRect(qrX, qrY, qrSize, qrSize);
                 ctx.fillStyle = '#b8a48c';
@@ -1069,25 +1067,34 @@
                 ctx.textBaseline = 'middle';
                 ctx.fillText('QR', qrX + qrSize/2, qrY + qrSize/2);
             }
-
-            // 二维码下方文字
+        } catch(e) {
+            ctx.fillStyle = '#f0e8e0';
+            ctx.fillRect(qrX, qrY, qrSize, qrSize);
             ctx.fillStyle = '#b8a48c';
-            ctx.font = '12px "PingFang SC", "Microsoft YaHei", sans-serif';
+            ctx.font = '18px sans-serif';
             ctx.textAlign = 'center';
-            ctx.textBaseline = 'top';
-            ctx.fillText('扫码测试', qrX + qrSize/2, qrY + qrSize + 6);
+            ctx.textBaseline = 'middle';
+            ctx.fillText('QR', qrX + qrSize/2, qrY + qrSize/2);
+        }
 
-            // 底部文字（右对齐，加大）
-            ctx.fillStyle = '#b8a48c';
-            ctx.font = '13px "PingFang SC", "Microsoft YaHei", sans-serif';
-            ctx.textAlign = 'right';
-            ctx.textBaseline = 'bottom';
-            ctx.fillText('浓淡皆宜 · 每种配比都是一杯特调', width - 70, height - 60);
-            ctx.fillStyle = '#cbbca8';
-            ctx.font = '11px "PingFang SC", "Microsoft YaHei", sans-serif';
-            ctx.fillText('test-backend-9iya.onrender.com', width - 70, height - 80);
-        }, 500);
-    }
+        // 二维码下方文字
+        ctx.fillStyle = '#b8a48c';
+        ctx.font = '12px "PingFang SC", "Microsoft YaHei", sans-serif';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'top';
+        ctx.fillText('扫码测试', qrX + qrSize/2, qrY + qrSize + 6);
+
+        // 底部文字（右对齐，加大）
+        ctx.fillStyle = '#b8a48c';
+        ctx.font = '13px "PingFang SC", "Microsoft YaHei", sans-serif';
+        ctx.textAlign = 'right';
+        ctx.textBaseline = 'bottom';
+        ctx.fillText('浓淡皆宜 · 每种配比都是一杯特调', width - 70, height - 60);
+        ctx.fillStyle = '#cbbca8';
+        ctx.font = '11px "PingFang SC", "Microsoft YaHei", sans-serif';
+        ctx.fillText('test-backend-9iya.onrender.com', width - 70, height - 80);
+    }, 500);
+}
 </script>
 </body>
 </html>
